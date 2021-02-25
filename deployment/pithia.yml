@@ -271,7 +271,7 @@ topology_template:
       properties:
         region_name: eu-west-2
         image_id: ami-09a1e275e350acf38
-        instance_type: t2.small
+        instance_type: t2.medium
         key_name: Dimitris-key
         #Allow all traffic to Jupyterhub
         security_group_ids:
@@ -314,10 +314,10 @@ topology_template:
             SCALE_DOWN_IF_FREE_SLOTS_ARE_LESS_THAN: '4'
             PODS_PER_NODE_AVG: '6'
           queries:
-            schedulable_nodes:  'count(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"} == 0) OR on() vector(0)'
-            unschedulable_nodes: 'count(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"} == 1) OR on() vector(0)'
+            schedulable_nodes:  'count(rate(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[1m]) == 0) OR on() vector(0)'
+            unschedulable_nodes: 'count(rate(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[1m]) == 1) OR on() vector(0)'
             active_jhub_users: 'count(kube_pod_labels{label_app="jupyterhub"}) OR on() vector(0)'
-          min_instances: 2
+          min_instances: 1
           max_instances: 5
 
 policy_types:
@@ -363,14 +363,11 @@ policy_types:
           pods_per_schedulable_nodes = dict()
           pods_per_unschedulable_nodes = dict()
           for node in nodes:
-            try:
-              if node.obj['status']['conditions'][4].get('status') == "True":
+              if node.obj['status']['conditions'][4].get('status') and node.obj['status']['conditions'][4].get('status') == "True":
                 if node.obj["spec"].get("unschedulable"):
                   pods_per_unschedulable_nodes[node.obj["metadata"].get("name")] = 0
                 else:
                   pods_per_schedulable_nodes[node.obj["metadata"].get("name")] = 0
-            except:
-              print("Node not ready: {}".format(node))
           for pod in pods:
             if pod.obj["spec"].get("nodeName") in pods_per_unschedulable_nodes:
               pods_per_unschedulable_nodes[pod.obj["spec"].get("nodeName")] += 1
@@ -398,7 +395,7 @@ policy_types:
               if pods_per_unschedulable_nodes:
                 for node in nodes:
                   if node.obj["metadata"].get("name") == max(pods_per_unschedulable_nodes):
-                    print("Making the most utilised node schedulable: {}", format.(node))
+                    print("Making the most utilised node schedulable: {}".format(node))
                     node.uncordon()
                     break
               else:
@@ -409,20 +406,20 @@ policy_types:
           elif jhub_underloaded and len(m_nodes)>1:
             print("JupyterHub is underloaded")
             # If there is an empty and unschedulable nodes REMOVE it, else make the most utilised node UNSCHEDULABLE
-            if pods_per_unschedulable_nodes and min(pods_per_unschedulable_nodes.values()) == 0
+            if pods_per_unschedulable_nodes and min(pods_per_unschedulable_nodes.values()) == 0:
               for node in nodes:
-                if node.obj["metadata"].get("name") == min(pods_per_unschedulable_nodes)
+                if node.obj["metadata"].get("name") == min(pods_per_unschedulable_nodes):
                   m_nodes_todrop.append(node.obj["status"]["addresses"][0].get("address"))
-                  print("Removing a empty node: {}", format.(node))
+                  print("Removing a empty node: {}".format(node))
                   break
             else:
               for node in nodes:
                 node.obj["metadata"].get("name") == min(pods_per_schedulable_nodes, key=pods_per_schedulable_nodes.get)
-                print("Making the leas utilised node unschedulable: {}", format.(node))
+                print("Making the leas utilised node unschedulable: {}".format(node))
                 node.cordon()
                 break
           else:
             print("nothing to apply")
-          else:
-           print('Transient phase, skipping...')
+        else:
+          print('Transient phase, skipping...')
         required: true
