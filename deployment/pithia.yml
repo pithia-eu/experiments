@@ -342,46 +342,49 @@ policy_types:
         type: string
         description: pre-define scaling rule for VM CPU
         default: |
+          # Application status
           print("JupyterHub policy")
           print("Current status:")
           print("MiCADO, active JHUB nodes: {}".format(len(m_nodes)))
           print("MiCADO, required JHUB nodes: {}".format(m_node_count))
           print("MiCADO, time since node count changed: {}".format(m_time_since_node_count_changed))
-          print("Prometheus, schedulalbe  nodes: {}".format(schedulable_nodes))
+          print("Prometheus, schedulable  nodes: {}".format(schedulable_nodes))
           print("Prometheus, unschedulable  nodes: {}".format(unschedulable_nodes))
-          print("Prometheus, active JHUB users: {}".format(active_jhub_users))
+          print("Prometheus, JHUB users: {}".format(active_jhub_users))
 
           # Query JHUB nodes and pods from kubernetes
           kube = pykube.HTTPClient(pykube.KubeConfig.from_file("/root/.kube/config"))
           nodes = pykube.Node.objects(kube).filter(selector={"micado.eu/node_type":"jupyterhub-node"})
           pods = pykube.Pod.objects(kube).filter(selector={"app":"jupyterhub"})
 
-          # Create two dictionaries with keys the name of the schedulable and unschedulable nodes
-          # and with values the sum of the running pods for each node
+          # Create two dictionaries one for schedulable and one for unschedulable nodes
+          # for key use the name of the nodes and for values the sum of the running pods on each node
+          print("Collecting JHUB nodes and pods")
           pods_per_schedulable_nodes = dict()
           pods_per_unschedulable_nodes = dict()
           for node in nodes:
-            if node.obj['status']['conditions'][4].get('status') == "True":
-              if node.obj["spec"].get("unschedulable"):
-                pods_per_unschedulable_nodes[node.obj["metadata"].get("name")] = 0
-              else:
-                pods_per_schedulable_nodes[node.obj["metadata"].get("name")] = 0
+            try:
+              if node.obj['status']['conditions'][4].get('status') == "True":
+                if node.obj["spec"].get("unschedulable"):
+                  pods_per_unschedulable_nodes[node.obj["metadata"].get("name")] = 0
+                else:
+                  pods_per_schedulable_nodes[node.obj["metadata"].get("name")] = 0
+            except:
+              print("Node not ready: {}".format(node))
           for pod in pods:
             if pod.obj["spec"].get("nodeName") in pods_per_unschedulable_nodes:
               pods_per_unschedulable_nodes[pod.obj["spec"].get("nodeName")] += 1
             elif pod.obj["spec"].get("nodeName") in pods_per_schedulable_nodes:
               pods_per_schedulable_nodes[pod.obj["spec"].get("nodeName")] += 1
 
-          print("unschedulable nodes:")
-          print(pods_per_unschedulable_nodes)
-          print("schedulable nodes:")
+          print("Schedulable nodes:")
           print(pods_per_schedulable_nodes)
-          if pods_per_unschedulable_nodes:
-            print("most utilised unschedulable node:")
-            print(max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get))
           if pods_per_schedulable_nodes:
-            print("least utilised schedulable node:")
-            print(min(pods_per_schedulable_nodes, key=pods_per_schedulable_nodes.get))
+            print("least utilised schedulable node: {}".format(min(pods_per_schedulable_nodes)))
+          print("Unschedulable nodes:")
+          print(pods_per_unschedulable_nodes)
+          if pods_per_unschedulable_nodes:
+            print("most utilised unschedulable node: {}".format(max(pods_per_unschedulable_nodes)))
 
           print("Checking if policy can be applied...")
           # Checking if MiCADO performs changes in the cluster nodes or if there are unschedulable nodes
@@ -394,8 +397,8 @@ policy_types:
               # If there are unschedulable nodes make SCHEDULABLE the most utilised node, else ADD a new node
               if pods_per_unschedulable_nodes:
                 for node in nodes:
-                  if node.obj["metadata"].get("name") == max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get):
-                    print("Making the most utilised node schedulable:", node)
+                  if node.obj["metadata"].get("name") == max(pods_per_unschedulable_nodes):
+                    print("Making the most utilised node schedulable: {}", format.(node))
                     node.uncordon()
                     break
               else:
@@ -405,15 +408,17 @@ policy_types:
           # Checking if Prometheus fires an underloaded alert
           elif jhub_underloaded and len(m_nodes)>1:
             print("JupyterHub is underloaded")
-            # If there is an empty and unschedulable nodes REMOVE it else make UNSCHEDULABLE the most utilised node
-            if pods_per_unschedulable_nodes and min(pods_per_unschedulable_nodes.values() == 0
+            # If there is an empty and unschedulable nodes REMOVE it, else make the most utilised node UNSCHEDULABLE
+            if pods_per_unschedulable_nodes and min(pods_per_unschedulable_nodes.values()) == 0
               for node in nodes:
-                if node.obj["metadata"].get("name") == min(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get)
+                if node.obj["metadata"].get("name") == min(pods_per_unschedulable_nodes)
                   m_nodes_todrop.append(node.obj["status"]["addresses"][0].get("address"))
+                  print("Removing a empty node: {}", format.(node))
                   break
             else:
               for node in nodes:
                 node.obj["metadata"].get("name") == min(pods_per_schedulable_nodes, key=pods_per_schedulable_nodes.get)
+                print("Making the leas utilised node unschedulable: {}", format.(node))
                 node.cordon()
                 break
           else:
