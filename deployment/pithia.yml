@@ -314,8 +314,8 @@ topology_template:
             SCALE_DOWN_IF_FREE_SLOTS_ARE_LESS_THAN: '4'
             PODS_PER_NODE_AVG: '6'
           queries:
-            schedulable_nodes:  'count(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"} offset 30s == 0) OR on() vector(0)'
-            unschedulable_nodes: 'count(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"} offset 30s == 1) OR on() vector(0)'
+            schedulable_nodes:  'count(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"} == 0) OR on() vector(0)'
+            unschedulable_nodes: 'count(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}  == 1) OR on() vector(0)'
             active_jhub_users: 'count(kube_pod_labels{label_app="jupyterhub"}) OR on() vector(0)'
           min_instances: 1
           max_instances: 5
