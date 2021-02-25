@@ -24,5 +24,5 @@ if [ -z "$SSL_PASS" ]; then
   exit
 fi
 
-echo "Submitting architecture.yaml to MiCADO at $MICADO_MASTER with appid \"$APP_ID\"..."
-curl --insecure -s -F adt=@"architecture.yaml" -X POST -u "$SSL_USER":"$SSL_PASS" https://$MICADO_MASTER:$MICADO_PORT/toscasubmitter/v2.0/applications/$APP_ID/ | jq
+echo "Submitting pithia.yaml to MiCADO at $MICADO_MASTER with appid \"$APP_ID\"..."
+curl --insecure -s -F adt=@"pithia.yaml" -X POST -u "$SSL_USER":"$SSL_PASS" https://$MICADO_MASTER:$MICADO_PORT/toscasubmitter/v2.0/applications/$APP_ID/ | jq

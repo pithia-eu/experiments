@@ -1,6 +1,6 @@
 MICADO_MASTER="IP"
 MICADO_PORT="443"
-APP_ID="stresstest"
+APP_ID="pithia"
 SSL_USER="admin"
 SSL_PASS="admin"
 ###########################################################################
