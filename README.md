@@ -34,7 +34,11 @@ kubectl cordon jupyterhub-node-172-31-36-149
 kubectl cordon jupyterhub-node-172-31-36-214
 kubectl cordon jupyterhub-node-172-31-37-1
 kubectl cordon jupyterhub-node-172-31-44-112
-
+kubectl delete pod
+kubectl delete pod jupyter-u2
+kubectl delete pod jupyter-u3
+kubectl delete pod jupyter-u4
+kubectl delete pod jupyter-u5
 
 sche
 count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node)) OR on() vector(0)
