@@ -347,7 +347,7 @@ policy_types:
           print("Current status:")
           print("MiCADO, active JHUB nodes: {}".format(len(m_nodes)))
           print("MiCADO, required JHUB nodes: {}".format(m_node_count))
-          print("MiCADO, time since node count changed: {}".format(m_time_since_node_count_changed))
+          print("MiCADO, time since required JHUB node count changed: {}".format(m_time_since_node_count_changed))
           print("Prometheus, schedulable  nodes: {}".format(schedulable_nodes))
           print("Prometheus, unschedulable  nodes: {}".format(unschedulable_nodes))
           #print("Prometheus, JHUB users: {}".format(active_jhub_users))
@@ -359,7 +359,7 @@ policy_types:
 
           # Create two dictionaries one for schedulable and one for unschedulable nodes
           # for key use the name of the nodes and for values the sum of the running pods on each node
-          print("Collecting JHUB nodes and pods")
+          print("Collecting JHUB nodes and pods information...")
           pods_per_schedulable_nodes = dict()
           pods_per_unschedulable_nodes = dict()
           for node in nodes:
