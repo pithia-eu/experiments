@@ -414,10 +414,10 @@ policy_types:
                     break
               else:
                 for node in nodes:
-                  node.obj["metadata"].get("name") == min(pods_per_schedulable_nodes, key=pods_per_schedulable_nodes.get)
-                  print("Making the leas utilised node unschedulable: {}".format(node))
-                  node.cordon()
-                  break
+                  if node.obj["metadata"].get("name") == min(pods_per_schedulable_nodes, key=pods_per_schedulable_nodes.get):
+                    print("Making the leas utilised node unschedulable: {}".format(node))
+                    node.cordon()
+                    break
             else:
               print("nothing to apply")
           else:
