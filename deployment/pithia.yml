@@ -336,7 +336,7 @@ policy_types:
           expr: '((count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node)) * {{PODS_PER_NODE_AVG}} OR on() vector(0)) - (count(sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node) + sum(kube_pod_info{node=~"jupyterhub-node.*",pod=~"jupyter.*"}) by (node)) OR on() vector(0))) > {{SCALE_DOWN_IF_FREE_SLOTS_ARE_LESS_THAN}}'
           for: 1m
         - alert: jhub_node_unschedulable
-          expr: '(count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 1) by (node)) OR on() vector(0))bash  > 0'
+          expr: '(count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 1) by (node)) OR on() vector(0)) > 0'
         required: true
       scaling_rule:
         type: string
