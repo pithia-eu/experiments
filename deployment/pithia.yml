@@ -368,6 +368,12 @@ policy_types:
           pods_per_schedulable_nodes = dict()
           pods_per_unschedulable_nodes = dict()
           for node in nodes:
+            try:
+              node_status = node.obj['status']['conditions'][4].get('status')
+            except:
+              node_status = "False"
+            print(node)
+            print(node_status)
             if node.obj['status']['conditions'][4].get('status') and node.obj['status']['conditions'][4].get('status') == "True":
               if node.obj["spec"].get("unschedulable"):
                 pods_per_unschedulable_nodes[node.obj["metadata"].get("name")] = 0
@@ -406,7 +412,7 @@ policy_types:
                   if node.obj["metadata"].get("name") == most_utilised_unschedulable_node:
                     print("Making the most utilised node schedulable: {}".format(node))
                     node.uncordon()
-                    del pods_per_unschedulable_nodes(most_utilised_unschedulable_node)
+                    pods_per_unschedulable_nodes.pop(most_utilised_unschedulable_node, none)
                     print("test", pods_per_unschedulable_nodes)
                     break
               else:

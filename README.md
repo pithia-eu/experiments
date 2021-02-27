@@ -28,6 +28,12 @@ kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-nod
 
 count(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 1) OR on() vector(0)
 
+            try:
+              node_status = node.obj['status']['conditions'][4].get('status')
+            except:
+              node_status = "False"
+            print(node)
+            print(node_status)
 
 kubectl cordon jupyterhub-node-172-31-32-95
 kubectl cordon jupyterhub-node-172-31-36-149
