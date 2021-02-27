@@ -362,7 +362,7 @@ policy_types:
           print("Checking if policy can be applied...")
           if (len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60) or pods_per_unschedulable_nodes:
             print("Applying...")
-            
+
             # Query JHUB nodes and pods from kubernetes
             kube = pykube.HTTPClient(pykube.KubeConfig.from_file("/root/.kube/config"))
             nodes = pykube.Node.objects(kube).filter(selector={"micado.eu/node_type":"jupyterhub-node"})
@@ -374,12 +374,6 @@ policy_types:
             pods_per_schedulable_nodes = dict()
             pods_per_unschedulable_nodes = dict()
             for node in nodes:
-              try:
-                node_status = node.obj['status']['conditions'][4].get('status')
-              except:
-                node_status = "False"
-              print(node)
-              print(node_status)
               if node.obj['status']['conditions'][4].get('status') and node.obj['status']['conditions'][4].get('status') == "True":
                 if node.obj["spec"].get("unschedulable"):
                   pods_per_unschedulable_nodes[node.obj["metadata"].get("name")] = 0
