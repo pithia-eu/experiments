@@ -356,8 +356,6 @@ policy_types:
           #print("from Prometheus, users on unschedulable  nodes: {}".format(unschedulable_nodes))
           #print("from Prometheus, free slots on unschedulable  nodes: {}".format(unschedulable_nodes))
 
-
-
           # Checking if MiCADO performs changes in the cluster nodes or if there are unschedulable nodes
           print("Checking if policy can be applied...")
           if (len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60) or pods_per_unschedulable_nodes:
