@@ -39,6 +39,8 @@ kubectl delete pod jupyter-u11
 kubectl delete pod jupyter-u12
 kubectl delete pod jupyter-u4
 kubectl delete pod jupyter-u5
+d-m-0
+d-ans
 
 sche
 count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node)) OR on() vector(0)

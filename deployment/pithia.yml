@@ -334,7 +334,7 @@ policy_types:
           for: 1m
         - alert: jhub_underloaded
           expr: '((count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node)) * {{PODS_PER_NODE_AVG}} OR on() vector(0)) - (sum(sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node) + sum(kube_pod_info{node=~"jupyterhub-node.*",pod=~"jupyter-.*"}) by (node)) OR on() vector(0))) > {{SCALE_DOWN_IF_FREE_SLOTS_ARE_LESS_THAN}}'
-          for: 1m
+          for: 3m
         - alert: jhub_node_unschedulable
           expr: '(count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 1) by (node)) OR on() vector(0)) > 0'
         required: true
@@ -345,12 +345,12 @@ policy_types:
           # Application status
           print("JupyterHub policy")
           print("Current status:")
-          print("MiCADO, active JHUB nodes: {}".format(len(m_nodes)))
-          print("MiCADO, required JHUB nodes: {}".format(m_node_count))
-          print("MiCADO, time since required JHUB node count changed: {}".format(m_time_since_node_count_changed))
-          print("Prometheus, schedulable  nodes: {}".format(schedulable_nodes))
-          print("Prometheus, unschedulable  nodes: {}".format(unschedulable_nodes))
-          #print("Prometheus, JHUB users: {}".format(active_jhub_users))
+          print("from MiCADO, active JHUB nodes: {}".format(len(m_nodes)))
+          print("from MiCADO, required JHUB nodes: {}".format(m_node_count))
+          print("from MiCADO, time since required JHUB node count changed: {}".format(m_time_since_node_count_changed))
+          print("from Prometheus, schedulable  nodes: {}".format(schedulable_nodes))
+          print("from Prometheus, unschedulable  nodes: {}".format(unschedulable_nodes))
+          #print("from Prometheus, JHUB users: {}".format(active_jhub_users))
 
           # Query JHUB nodes and pods from kubernetes
           kube = pykube.HTTPClient(pykube.KubeConfig.from_file("/root/.kube/config"))
@@ -378,11 +378,12 @@ policy_types:
           print(pods_per_schedulable_nodes)
           if pods_per_schedulable_nodes:
             print("least utilised schedulable node: {}".format(min(pods_per_schedulable_nodes, key=pods_per_schedulable_nodes.get)))
+
           print("Unschedulable nodes:")
           print(pods_per_unschedulable_nodes)
           if pods_per_unschedulable_nodes:
             print("most utilised unschedulable node: {}".format(max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get)))
-
+            print("test",min(pods_per_unschedulable_nodes.values()) == 0)
           print("Checking if policy can be applied...")
           # Checking if MiCADO performs changes in the cluster nodes or if there are unschedulable nodes
           if (len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60) or pods_per_unschedulable_nodes:
