@@ -357,49 +357,50 @@ policy_types:
           #print("from Prometheus, free slots on unschedulable  nodes: {}".format(unschedulable_nodes))
 
 
-          # Query JHUB nodes and pods from kubernetes
-          kube = pykube.HTTPClient(pykube.KubeConfig.from_file("/root/.kube/config"))
-          nodes = pykube.Node.objects(kube).filter(selector={"micado.eu/node_type":"jupyterhub-node"})
-          pods = pykube.Pod.objects(kube).filter(selector={"app":"jupyterhub"})
-
-          # Create two dictionaries one for schedulable and one for unschedulable nodes
-          # for key use the name of the nodes and for values the sum of the running pods on each node
-          print("Collecting JHUB nodes and pods information...")
-          pods_per_schedulable_nodes = dict()
-          pods_per_unschedulable_nodes = dict()
-          for node in nodes:
-            try:
-              node_status = node.obj['status']['conditions'][4].get('status')
-            except:
-              node_status = "False"
-            print(node)
-            print(node_status)
-            if node.obj['status']['conditions'][4].get('status') and node.obj['status']['conditions'][4].get('status') == "True":
-              if node.obj["spec"].get("unschedulable"):
-                pods_per_unschedulable_nodes[node.obj["metadata"].get("name")] = 0
-              else:
-                pods_per_schedulable_nodes[node.obj["metadata"].get("name")] = 0
-          for pod in pods:
-            if pod.obj["spec"].get("nodeName") in pods_per_unschedulable_nodes:
-              pods_per_unschedulable_nodes[pod.obj["spec"].get("nodeName")] += 1
-            elif pod.obj["spec"].get("nodeName") in pods_per_schedulable_nodes:
-              pods_per_schedulable_nodes[pod.obj["spec"].get("nodeName")] += 1
-
-          print("Schedulable nodes:")
-          print(pods_per_schedulable_nodes)
-          if pods_per_schedulable_nodes:
-            print("least utilised schedulable node: {}".format(min(pods_per_schedulable_nodes, key=pods_per_schedulable_nodes.get)))
-            print("pods: {}".format(min(pods_per_schedulable_nodes.values())))
-          print("Unschedulable nodes:")
-          print(pods_per_unschedulable_nodes)
-          if pods_per_unschedulable_nodes:
-            print("most utilised unschedulable node: {}".format(max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get)))
-            print("pods: {}".format(min(pods_per_unschedulable_nodes.values())))
 
           # Checking if MiCADO performs changes in the cluster nodes or if there are unschedulable nodes
           print("Checking if policy can be applied...")
           if (len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60) or pods_per_unschedulable_nodes:
             print("Applying...")
+            
+            # Query JHUB nodes and pods from kubernetes
+            kube = pykube.HTTPClient(pykube.KubeConfig.from_file("/root/.kube/config"))
+            nodes = pykube.Node.objects(kube).filter(selector={"micado.eu/node_type":"jupyterhub-node"})
+            pods = pykube.Pod.objects(kube).filter(selector={"app":"jupyterhub"})
+
+            # Create two dictionaries one for schedulable and one for unschedulable nodes
+            # for key use the name of the nodes and for values the sum of the running pods on each node
+            print("Collecting JHUB nodes and pods information...")
+            pods_per_schedulable_nodes = dict()
+            pods_per_unschedulable_nodes = dict()
+            for node in nodes:
+              try:
+                node_status = node.obj['status']['conditions'][4].get('status')
+              except:
+                node_status = "False"
+              print(node)
+              print(node_status)
+              if node.obj['status']['conditions'][4].get('status') and node.obj['status']['conditions'][4].get('status') == "True":
+                if node.obj["spec"].get("unschedulable"):
+                  pods_per_unschedulable_nodes[node.obj["metadata"].get("name")] = 0
+                else:
+                  pods_per_schedulable_nodes[node.obj["metadata"].get("name")] = 0
+            for pod in pods:
+              if pod.obj["spec"].get("nodeName") in pods_per_unschedulable_nodes:
+                pods_per_unschedulable_nodes[pod.obj["spec"].get("nodeName")] += 1
+              elif pod.obj["spec"].get("nodeName") in pods_per_schedulable_nodes:
+                pods_per_schedulable_nodes[pod.obj["spec"].get("nodeName")] += 1
+
+            print("Schedulable nodes:")
+            print(pods_per_schedulable_nodes)
+            if pods_per_schedulable_nodes:
+              print("least utilised schedulable node: {}".format(min(pods_per_schedulable_nodes, key=pods_per_schedulable_nodes.get)))
+              print("pods: {}".format(min(pods_per_schedulable_nodes.values())))
+            print("Unschedulable nodes:")
+            print(pods_per_unschedulable_nodes)
+            if pods_per_unschedulable_nodes:
+              print("most utilised unschedulable node: {}".format(max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get)))
+              print("pods: {}".format(min(pods_per_unschedulable_nodes.values())))
 
             # Checking if Prometheus fires an overloaded alert
             if jhub_overloaded:
