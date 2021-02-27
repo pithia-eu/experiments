@@ -400,11 +400,13 @@ policy_types:
               print("JupyterHub is overloaded")
               # If there are unschedulable nodes make SCHEDULABLE the most utilised node, else ADD a new node
               if pods_per_unschedulable_nodes:
+                most_utilised_unschedulable_node = max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get)
+                print("most_utilised_unschedulable_node", most_utilised_unschedulable_node)
                 for node in nodes:
-                  if node.obj["metadata"].get("name") == max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get):
+                  if node.obj["metadata"].get("name") == most_utilised_unschedulable_node:
                     print("Making the most utilised node schedulable: {}".format(node))
                     node.uncordon()
-                    del pods_per_unschedulable_nodes(max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get))
+                    del pods_per_unschedulable_nodes(most_utilised_unschedulable_node)
                     print("test", pods_per_unschedulable_nodes)
                     break
               else:
