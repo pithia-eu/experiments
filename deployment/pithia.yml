@@ -314,9 +314,13 @@ topology_template:
             SCALE_DOWN_IF_FREE_SLOTS_ARE_LESS_THAN: '4'
             PODS_PER_NODE_AVG: '6'
           queries:
-            schedulable_nodes:  'count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node)) OR on() vector(0)'
-            unschedulable_nodes: 'count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 1) by (node)) OR on() vector(0)'
             #active_jhub_users: 'count(sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node) + sum(kube_pod_info{node=~"jupyterhub-node.*",pod=~"jupyter.*"}) by (node)) OR on() vector(0)'
+            schedulable_nodes:  'count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node)) OR on() vector(0)'
+            #users_on_schedulable_nodes
+            #free_slots_on_schedulable_nodes
+            unschedulable_nodes: 'count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 1) by (node)) OR on() vector(0)'
+            #users_on_schedulable_nodes
+            #free_slots_on_unschedulable_nodes
           min_instances: 1
           max_instances: 5
 
@@ -327,7 +331,7 @@ policy_types:
     properties:
       alerts:
         type: list
-        description: pre-define alerts for VM CPU
+        description: pre-define alerts for JHUB
         default:
         - alert: jhub_overloaded
           expr: '((count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node)) * {{PODS_PER_NODE_AVG}} OR on() vector(0)) - (sum(sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node) + sum(kube_pod_info{node=~"jupyterhub-node.*",pod=~"jupyter-.*"}) by (node)) OR on() vector(0))) < {{SCALE_UP_IF_FREE_SLOTS_ARE_LESS_THAN}}'
@@ -340,8 +344,9 @@ policy_types:
         required: true
       scaling_rule:
         type: string
-        description: pre-define scaling rule for VM CPU
+        description: pre-define scaling rule for JHUB
         default: |
+          
           # JHUB status
           print("JupyterHub policy")
           print("Current status:")
@@ -372,7 +377,8 @@ policy_types:
             pods_per_schedulable_nodes = dict()
             pods_per_unschedulable_nodes = dict()
             for node in nodes:
-              if node.obj['status']['conditions'][4].get('status') and node.obj['status']['conditions'][4].get('status') == "True":
+              #node.obj['status']['conditions'][4].get('status') and
+              if node.obj['status']['conditions'][4].get('status') == "True":
                 if node.obj["spec"].get("unschedulable"):
                   pods_per_unschedulable_nodes[node.obj["metadata"].get("name")] = 0
                 else:
@@ -400,13 +406,13 @@ policy_types:
               # If there are unschedulable nodes make SCHEDULABLE the most utilised node, else ADD a new node
               if pods_per_unschedulable_nodes:
                 most_utilised_unschedulable_node = max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get)
-                print("most_utilised_unschedulable_node", most_utilised_unschedulable_node)
+                print("TEST most_utilised_unschedulable_node", most_utilised_unschedulable_node)
                 for node in nodes:
                   if node.obj["metadata"].get("name") == most_utilised_unschedulable_node:
-                    print("Making the most utilised node schedulable: {}".format(node))
+                    print("Making schedulable the most utilised unschedulable node: {}".format(node))
                     node.uncordon()
                     pods_per_unschedulable_nodes.pop(most_utilised_unschedulable_node, none)
-                    print("test", pods_per_unschedulable_nodes)
+                    print("Test after pop!!", pods_per_unschedulable_nodes)
                     break
               else:
                 print("Adding a new node..")
@@ -415,10 +421,10 @@ policy_types:
             # Checking if Prometheus fires an underloaded alert
             elif jhub_underloaded and len(m_nodes)>1:
               print("JupyterHub is underloaded")
-              # Make the most utilised node UNSCHEDULABLE
+              # Make the least utilised node UNSCHEDULABLE
               for node in nodes:
                 if node.obj["metadata"].get("name") == min(pods_per_schedulable_nodes, key=pods_per_schedulable_nodes.get):
-                  print("Making the leas utilised node unschedulable: {}".format(node))
+                  print("Making unschedulable the leas utilised node: {}".format(node))
                   node.cordon()
                   break
             else:
@@ -429,10 +435,12 @@ policy_types:
               for node in nodes:
                 if node.obj["metadata"].get("name") == min(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get):
                   m_nodes_todrop.append(node.obj["status"]["addresses"][0].get("address"))
-                  print("Removing a node: {}".format(node))
+                  print("Removing a empty node: {}".format(node))
                   break
             else:
               print("No empty nodes")
+
           else:
             print('Transient phase, skipping...')
+
         required: true
