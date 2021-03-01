@@ -42,8 +42,8 @@ kubectl cordon jupyterhub-node-172-31-37-1
 kubectl cordon jupyterhub-node-172-31-44-112
 kubectl delete pod jupyter-u10
 kubectl delete pod jupyter-u11
-kubectl delete pod jupyter-u12
-kubectl delete pod jupyter-u4
+kubectl delete pod jupyter-u6
+kubectl delete pod jupyter-u7
 kubectl delete pod jupyter-u5
 d-m-0
 d-ans

@@ -346,7 +346,7 @@ policy_types:
         type: string
         description: pre-define scaling rule for JHUB
         default: |
-          
+
           # JHUB status
           print("JupyterHub policy")
           print("Current status:")
@@ -363,7 +363,7 @@ policy_types:
 
           # Checking if MiCADO performs changes in the cluster nodes or if there are unschedulable nodes
           print("Checking if policy can be applied...")
-          if (len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60) or pods_per_unschedulable_nodes:
+          if (len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60) or jhub_node_unschedulable:
             print("Applying...")
 
             # Query JHUB nodes and pods from kubernetes
@@ -411,7 +411,7 @@ policy_types:
                   if node.obj["metadata"].get("name") == most_utilised_unschedulable_node:
                     print("Making schedulable the most utilised unschedulable node: {}".format(node))
                     node.uncordon()
-                    pods_per_unschedulable_nodes.pop(most_utilised_unschedulable_node, none)
+                    pods_per_unschedulable_nodes.pop(most_utilised_unschedulable_node, node)
                     print("Test after pop!!", pods_per_unschedulable_nodes)
                     break
               else:
