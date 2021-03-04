@@ -361,6 +361,8 @@ policy_types:
           #print("from Prometheus, users on unschedulable  nodes: {}".format(unschedulable_nodes))
           #print("from Prometheus, free slots on unschedulable  nodes: {}".format(unschedulable_nodes))
 
+          print(max_instances)
+
           # Checking if MiCADO performs changes in the cluster nodes or if there are unschedulable nodes
           print("Checking if policy can be applied...")
           if (len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60) or jhub_node_unschedulable:
@@ -398,10 +400,10 @@ policy_types:
             print(pods_per_unschedulable_nodes)
             if pods_per_unschedulable_nodes:
               print("most utilised unschedulable node: {}".format(max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get)))
-              print("pods: {}".format(min(pods_per_unschedulable_nodes.values())))
+              print("pods: {}".format(max(pods_per_unschedulable_nodes.values())))
 
             # Checking if Prometheus fires an overloaded alert
-            if jhub_overloaded:
+            if jhub_overloaded: # and m_node != max_instance
               print("JupyterHub is overloaded")
               # If there are unschedulable nodes make SCHEDULABLE the most utilised node, else ADD a new node
               if pods_per_unschedulable_nodes:
@@ -415,7 +417,7 @@ policy_types:
                     print("Test after pop!!", pods_per_unschedulable_nodes)
                     break
               else:
-                print("Adding a new node..")
+                print("Adding a new node (if not max instances)..")
                 m_node_count+=1
 
             # Checking if Prometheus fires an underloaded alert
