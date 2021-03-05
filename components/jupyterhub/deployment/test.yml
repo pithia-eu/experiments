@@ -1,0 +1,105 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+imports:
+- https://raw.githubusercontent.com/micado-scale/tosca/develop/micado_types.yaml
+repositories:
+  docker_hub: https://hub.docker.com/
+description: 'Dimitris test'
+topology_template:
+  node_templates:
+
+    jupyterhub-configmap:
+    type: tosca.nodes.MiCADO.Kubernetes
+    interfaces:
+      Kubernetes:
+        create:
+          inputs:
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: jupyterhub
+              labels:
+                app.kubernetes.io/name: jupyterhub
+                app.kubernetes.io/instance: jupyterhub
+            data:
+              jupyterhub.conf: "# Config file for mosquitto\n#\n# See mosquitto.conf(5)\
+                \ for more information.\n#\n# Default values are shown, uncomment\
+                \ to change.\n#\n# Use the # character to indicate a comment, but\
+                \ only if it is the\n# very first character on the line.\nconnection\
+                \ ConSenses_Sandbox\naddress 178.20.100.64:8883\nbridge_insecure\
+                \ true\nbridge_cafile /mosquitto/config/ca.crt\nbridge_certfile\
+                \ /mosquitto/config/client.crt\nbridge_keyfile /mosquitto/secret/client.key\n\
+                topic s4Yr/# in\n"
+
+    jupyterhub-deployment:
+        type: tosca.nodes.MiCADO.Kubernetes
+        interfaces:
+          Kubernetes:
+            create:
+              inputs:
+                apiVersion: apps/v1
+                kind: Deployment
+                metadata:
+                  name: jupyterhub
+                  labels:
+                    app.kubernetes.io/name: jupyterhub
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      app.kubernetes.io/name: jupyterhub
+                      app.kubernetes.io/instance: jupyterhub
+                  template:
+                    metadata:
+                      labels:
+                        app.kubernetes.io/name: jupyterhub
+                        app.kubernetes.io/instance: jupyterhub
+                    spec:
+                      containers:
+                      - name: jupyterhub
+                        image: jupyterhub/jupyterhub:1.2
+                        imagePullPolicy: IfNotPresent
+                        ports:
+                        - name: default
+                          containerPort: 8000
+                          protocol: HTTP
+                        volumeMounts:
+                          - name: configmap
+                            mountPath: /jupyterhub/config
+                          #tt
+                          lifecycle:
+                            postStart:
+                              exec:
+                                command: [ "/bin/sh", "-c", "apt-get update && apt-get install vim && pip install jupyterhub-kubespawner" ]
+                          volumes:
+                            - name: configmap
+                              configMap:
+                                name: jupyterhub
+
+policy_types:
+  tosca.policies.Scaling.MiCADO.VirtualMachine.CPU.jupyterhub:
+    derived_from: tosca.policies.Scaling.MiCADO
+    description: base MiCADO policy defining data sources, constants, queries, alerts, limits and rules
+    properties:
+      alerts:
+        type: list
+        description: pre-define alerts for VM CPU
+        default:
+        - alert: node_overloaded
+          expr: '(100-(avg(rate(node_cpu_seconds_total{node="{{ NODE_NAME }}", mode="idle"}[60s]))*100)) > {{NODE_TH_MAX}}'
+          for: 1m
+        - alert: node_underloaded
+          expr: '(100-(avg(rate(node_cpu_seconds_total{node="{{ NODE_NAME }}", mode="idle"}[60s]))*100)) < {{NODE_TH_MIN}}'
+          for: 1m
+        required: true
+      scaling_rule:
+        type: string
+        description: pre-define scaling rule for VM CPU
+        default: |
+          if len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60:
+            if node_overloaded:
+              m_node_count+=1
+            if node_underloaded:
+              m_node_count-=1
+          else:
+            print('Transient phase, skipping update of nodes...')
+        required: true
