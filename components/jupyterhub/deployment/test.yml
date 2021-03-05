@@ -63,17 +63,17 @@ topology_template:
                           containerPort: 8000
                           protocol: HTTP
                         volumeMounts:
+                        - name: configmap
+                          mountPath: /jupyterhub/config
+                        #tt
+                        lifecycle:
+                          postStart:
+                            exec:
+                              command: [ "/bin/sh", "-c", "apt-get update && apt-get install vim && pip install jupyterhub-kubespawner" ]
+                        volumes:
                           - name: configmap
-                            mountPath: /jupyterhub/config
-                          #tt
-                          lifecycle:
-                            postStart:
-                              exec:
-                                command: [ "/bin/sh", "-c", "apt-get update && apt-get install vim && pip install jupyterhub-kubespawner" ]
-                          volumes:
-                            - name: configmap
-                              configMap:
-                                name: jupyterhub
+                            configMap:
+                              name: jupyterhub
 
 policy_types:
   tosca.policies.Scaling.MiCADO.VirtualMachine.CPU.jupyterhub:
