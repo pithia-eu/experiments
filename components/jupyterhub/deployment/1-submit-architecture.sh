@@ -25,4 +25,4 @@ if [ -z "$SSL_PASS" ]; then
 fi
 
 echo "Submitting pithia.yml to MiCADO at $MICADO_MASTER with appid \"$APP_ID\"..."
-curl --insecure -s -F adt=@"pithia.yml" -X POST -u "$SSL_USER":"$SSL_PASS" https://$MICADO_MASTER:$MICADO_PORT/toscasubmitter/v2.0/applications/$APP_ID/ | jq
+curl --insecure -s -F adt=@"jupyterhub.yml" -X POST -u "$SSL_USER":"$SSL_PASS" https://$MICADO_MASTER:$MICADO_PORT/toscasubmitter/v2.0/applications/$APP_ID/ | jq
