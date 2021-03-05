@@ -22,14 +22,54 @@ topology_template:
                   app.kubernetes.io/instance: jupyterhub
               data:
                 #Change if only you know what you are doing
-                jupyterhub.py: "# Config file for mosquitto\n#\n# See mosquitto.conf(5)\
-                  \ for more information.\n#\n# Default values are shown, uncomment\
-                  \ to change.\n#\n# Use the # character to indicate a comment, but\
-                  \ only if it is the\n# very first character on the line.\nconnection\
-                  \ ConSenses_Sandbox\naddress 178.20.100.64:8883\nbridge_insecure\
-                  \ true\nbridge_cafile /mosquitto/config/ca.crt\nbridge_certfile\
-                  \ /mosquitto/config/client.crt\nbridge_keyfile /mosquitto/secret/client.key\n\
-                topic s4Yr/# in\n"
+                jupyterhub.py: "import os
+
+                                ## Generic
+
+                                c.JupyterHub.admin_access = True
+
+                                c.Spawner.default_url = '/lab'
+
+                                # Network Configuration
+
+                                c.JupyterHub.spawner_class = 'kubespawner.KubeSpawner'
+
+                                c.JupyterHub.hub_ip = 0.0.0.0
+
+                                c.KubeSpawner.hub_connect_ip = 'jupyterhub-clusterip'
+
+                                # Start Notebook in user directory
+
+                                c.KubeSpawner.notebook_dir = '/home/jovyan/{username}'
+
+                                c.KubeSpawner.working_dir = '/home/jovyan/{username}'
+
+
+                                # PoD Requirements for the Jupyter notbooks
+
+                                c.KubeSpawner.cpu_guarantee = os.environ.get('CPU_MIN')
+
+                                c.KubeSpawner.cpu_limit = os.environ.get('CPU_MAX')
+
+                                c.KubeSpawner.mem_guarantee = os.environ.get('MEM_MIN')
+
+                                c.KubeSpawner.mem_limit = os.environ.get('MEM_MAX')
+
+                                c.KubeSpawner.storage_capacity =  os.environ.get('STORAGE_CAPACITY')
+
+                                c.KubeSpawner.start_timeout = 60*10
+
+
+                                c.KubeSpawner.fs_gid = os.environ.get('FS_GID')
+
+                                c.KubeSpawner.gid = os.environ.get('GID')
+
+
+                                c.KubeSpawner.volume_mounts = [{'name': 'home','mountPath': '/home/jovyan'}]
+
+                                # Only spawn the jupyter notebook on nodes are labels as 'jupyter-node'
+
+                                c.KubeSpawner.node_selector = {'micado.eu/node_type':'notebook-node'}"
     jupyterhub-service:
       type: tosca.nodes.MiCADO.Kubernetes
       interfaces:
@@ -83,13 +123,15 @@ topology_template:
                       ports:
                       - containerPort: 8000
                         name: jhub
+                      - containerPort: 8081
+                        name: jhub2
                       volumeMounts:
                       - name: configmap
                         mountPath: /jupyterhub/config
                       lifecycle:
                         postStart:
                           exec:
-                            command: [ "/bin/sh", "-c", "apt update && apt install sudo" ]
+                            command: [ "/bin/sh", "-c", "apt update && apt install sudo && sudo cp /jupyterhub/config/jupyterhub.py jupyterhub.py && pip install jupyterhub-kubespawner" ]
                             #apt-get update && apt-get install vim && pip install jupyterhub-kubespawner
                     volumes:
                       - name: configmap

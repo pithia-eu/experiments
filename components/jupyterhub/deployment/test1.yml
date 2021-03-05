@@ -1,0 +1,119 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+imports:
+- https://raw.githubusercontent.com/micado-scale/tosca/develop/micado_types.yaml
+repositories:
+  docker_hub: https://hub.docker.com/
+description: 'Dimitris test'
+topology_template:
+  node_templates:
+
+    jupyterhub-configmap:
+      type: tosca.nodes.MiCADO.Container.Config.Kubernetes
+      properties:
+        data:
+          jupyterhub.conf: "# Config file for mosquitto\n#\n# See mosquitto.conf(5)\
+            \ for more information.\n#\n# Default values are shown, uncomment\
+            \ to change.\n#\n# Use the # character to indicate a comment, but\
+            \ only if it is the\n# very first character on the line.\nconnection\
+            \ ConSenses_Sandbox\naddress 178.20.100.64:8883\nbridge_insecure\
+            \ true\nbridge_cafile /mosquitto/config/ca.crt\nbridge_certfile\
+            \ /mosquitto/config/client.crt\nbridge_keyfile /mosquitto/secret/client.key\n\
+          topic s4Yr/# in\n"
+
+    jupyterhub:
+      type: tosca.nodes.MiCADO.Container.Application.Docker.Deployment
+      properties:
+        name: jupyterhub
+        image: "balalior/micado-jupyterhub:1.0.4"
+        lifecycle:
+          postStart:
+            exec:
+              command: [ "/bin/sh", "-c", "apt update && apt install sudo" ]
+        env:
+          - name: HUB_IP
+            value: 0.0.0.0
+          - name: SPAWNER_CLASS
+            value: "kubespawner.KubeSpawner"
+          - name: K8S_HUB_API_IP
+            value: "jupyterhub-clusterip"
+          - name: NFS_SERVER
+            value: 18.133.255.231
+          - name: NFS_PATH
+            value: "/mnt/nfs_share/users"
+        ports:
+          - port: 8000
+            #This is the public port to access the jupyterhub
+            nodePort: 30001
+          - port: 8081
+      requirements:
+      - host: jupyterhub-node
+      - volume:
+          node: nfs-volume
+          relationship:
+            type: tosca.relationships.AttachesTo
+            properties:
+              location: /data=
+      - volume:
+          node: jupyterhub-configmap
+          relationship:
+            type: tosca.relationships.AttachesTo
+            properties:
+              location: /etc/config
+    jupyterhub-node:
+      type: tosca.nodes.MiCADO.EC2.Compute
+      properties:
+        region_name: eu-west-2 #ADD_YOUR_REGION_NAME
+        image_id: ami-09a1e275e350acf38 #ADD_YOUR_IMAGE_ID
+        instance_type: t2.medium #ADD_YOUR_IMAGE_ID
+        key_name: Dimitris-key #ADD_YOUR_KEY_NAME
+        #Allow all traffic to Jupyterhub
+        security_group_ids:
+          - sg-075395b33ac05ee99 #ADD_YOUR_SECURITY_GROUP_ID
+      interfaces:
+        Occopus:
+          create:
+            inputs:
+              endpoint: https://ec2.eu-west-2.amazonaws.com
+    notebook-node:
+      type: tosca.nodes.MiCADO.EC2.Compute
+      properties:
+        region_name: eu-west-2
+        image_id: ami-09a1e275e350acf38
+        instance_type: t2.medium
+        key_name: Dimitris-key
+        security_group_ids:
+          - sg-075395b33ac05ee99
+      interfaces:
+        Occopus:
+          create:
+            inputs:
+              endpoint: https://ec2.eu-west-2.amazonaws.com
+
+policy_types:
+  tosca.policies.Scaling.MiCADO.VirtualMachine.CPU.jupyterhub:
+    derived_from: tosca.policies.Scaling.MiCADO
+    description: base MiCADO policy defining data sources, constants, queries, alerts, limits and rules
+    properties:
+      alerts:
+        type: list
+        description: pre-define alerts for VM CPU
+        default:
+        - alert: node_overloaded
+          expr: '(100-(avg(rate(node_cpu_seconds_total{node="{{ NODE_NAME }}", mode="idle"}[60s]))*100)) > {{NODE_TH_MAX}}'
+          for: 1m
+        - alert: node_underloaded
+          expr: '(100-(avg(rate(node_cpu_seconds_total{node="{{ NODE_NAME }}", mode="idle"}[60s]))*100)) < {{NODE_TH_MIN}}'
+          for: 1m
+        required: true
+      scaling_rule:
+        type: string
+        description: pre-define scaling rule for VM CPU
+        default: |
+          if len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60:
+            if node_overloaded:
+              m_node_count+=1
+            if node_underloaded:
+              m_node_count-=1
+          else:
+            print('Transient phase, skipping update of nodes...')
+        required: true
