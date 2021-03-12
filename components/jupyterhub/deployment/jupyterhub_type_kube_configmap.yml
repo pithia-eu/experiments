@@ -22,54 +22,44 @@ topology_template:
                   app.kubernetes.io/instance: jupyterhub
               data:
                 #Change if only you know what you are doing
-                jupyterhub.py: "import os
-
-                                ## Generic
-
-                                c.JupyterHub.admin_access = True
-
-                                c.Spawner.default_url = '/lab'
-
-                                # Network Configuration
-
-                                c.JupyterHub.spawner_class = 'kubespawner.KubeSpawner'
-
-                                c.JupyterHub.hub_ip = 0.0.0.0
-
-                                c.KubeSpawner.hub_connect_ip = 'jupyterhub-clusterip'
-
-                                # Start Notebook in user directory
-
-                                c.KubeSpawner.notebook_dir = '/home/jovyan/{username}'
-
-                                c.KubeSpawner.working_dir = '/home/jovyan/{username}'
-
-
-                                # PoD Requirements for the Jupyter notbooks
-
-                                c.KubeSpawner.cpu_guarantee = os.environ.get('CPU_MIN')
-
-                                c.KubeSpawner.cpu_limit = os.environ.get('CPU_MAX')
-
-                                c.KubeSpawner.mem_guarantee = os.environ.get('MEM_MIN')
-
-                                c.KubeSpawner.mem_limit = os.environ.get('MEM_MAX')
-
-                                c.KubeSpawner.storage_capacity =  os.environ.get('STORAGE_CAPACITY')
-
-                                c.KubeSpawner.start_timeout = 60*10
-
-
-                                c.KubeSpawner.fs_gid = os.environ.get('FS_GID')
-
-                                c.KubeSpawner.gid = os.environ.get('GID')
-
-
-                                c.KubeSpawner.volume_mounts = [{'name': 'home','mountPath': '/home/jovyan'}]
-
-                                # Only spawn the jupyter notebook on nodes are labels as 'jupyter-node'
-
-                                c.KubeSpawner.node_selector = {'micado.eu/node_type':'notebook-node'}"
+                jupyterhub.py: "import os\n
+                                # Generic\n
+                                c.JupyterHub.admin_access = True\n
+                                c.Spawner.default_url = '/lab'\n
+                                c.JupyterHub.spawner_class = os.environ['SPAWNER_CLASS']\n
+                                #c.DockerSpawner.image = os.environ['DOCKER_JUPYTER_IMAGE']\n
+                                #c.DockerSpawner.network_name = os.environ['DOCKER_NETWORK_NAME']\n
+                                c.JupyterHub.hub_ip = os.environ['HUB_IP']\n
+                                c.KubeSpawner.hub_connect_ip = os.environ['K8S_HUB_API_IP']\n
+                                #c.KubeSpawner.default_url = '/notebooks/{username}/lab'\n
+                                nfs_server = os.environ.get('NFS_SERVER')\n
+                                nfs_path = os.environ.get('NFS_PATH')\n
+                                c.KubeSpawner.volumes = [\n
+                                    {\n
+                                        'name': 'home',\n
+                                        'nfs': {\n
+                                            'server': nfs_server,\n
+                                            'path': nfs_path\n
+                                        }\n
+                                    }\n
+                                ]\n
+                                c.KubeSpawner.volume_mounts = [\n
+                                    {\n
+                                        'name': 'home',\n
+                                        'mountPath': '/home/jovyan'\n
+                                     }\n
+                                ]\n
+                                # Start Notebook in user directory\n
+                                c.KubeSpawner.notebook_dir = '/home/jovyan/{username}'\n
+                                c.KubeSpawner.working_dir = '/home/jovyan/{username}'\n
+                                #c.KubeSpawner.default_url = '/tree/home/{username}/lab'\n
+                                #notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR') or '/home/jovyan'\n
+                                #c.DockerSpawner.notebook_dir = notebook_dir\n
+                                #c.DockerSpawner.volumes = { 'jupyterhub-user-{username}': notebook_dir }\n
+                                #c.Spawner.cpu_limit = 1\n
+                                #c.Spawner.mem_limit = '2G'\n
+                                c.KubeSpawner.node_selector = {'micado.eu/node_type':'jupyter-node'}\n
+                                c.DummyAuthenticator.password = 'password'\n"
     jupyterhub-service:
       type: tosca.nodes.MiCADO.Kubernetes
       interfaces:

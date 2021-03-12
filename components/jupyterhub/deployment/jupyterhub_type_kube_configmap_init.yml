@@ -1,11 +1,3 @@
-# JupyterHub Application Description Template
-# Components:
-# JupyterHub metrics from Kubernetes [lines 17 - 244]
-# JupyterHub deployment  [lines 246 -323]
-# JupyterHub Metrics, Alerts, Constants [lines 325 - 352]
-# JupyterHub Scaling Policy[lines 354 -476]
-# Project repository:
-
 tosca_definitions_version: tosca_simple_yaml_1_2
 imports:
 - https://raw.githubusercontent.com/micado-scale/tosca/develop/micado_types.yaml
@@ -14,7 +6,6 @@ repositories:
 description: 'Generated from K8s manifests: deployment.yaml'
 topology_template:
   node_templates:
-    # Introducing Kubernetes Metrics to MiCADO for use by JupyterHub
     kube-state-metrics-clusterrole:
       type: tosca.nodes.MiCADO.Kubernetes
       interfaces:
@@ -243,12 +234,85 @@ topology_template:
                 selector:
                   app.kubernetes.io/name: kube-state-metrics
 
-    # JupyterHub Deployment
+    #Don't Change these fields
+
+    jupyterhub-configmap:
+      type: tosca.nodes.MiCADO.Container.Config.Kubernetes
+      properties:
+        data:
+          jupyterhub_config.py: "import os\n
+
+                                 ## Generic\n
+
+                                 c.JupyterHub.admin_access = True\n
+
+                                 c.Spawner.default_url = '/lab'\n
+
+                                 c.JupyterHub.spawner_class = os.environ['SPAWNER_CLASS']\n
+
+                                 #c.DockerSpawner.image = os.environ['DOCKER_JUPYTER_IMAGE']\n
+
+                                 #c.DockerSpawner.network_name = os.environ['DOCKER_NETWORK_NAME']\n
+
+                                 c.JupyterHub.hub_ip = os.environ['HUB_IP']\n
+
+                                 c.KubeSpawner.hub_connect_ip = os.environ['K8S_HUB_API_IP']\n
+
+                                 #c.KubeSpawner.default_url = '/notebooks/{username}/lab'\n
+
+                                 nfs_server = os.environ.get('NFS_SERVER')\n
+
+                                 nfs_path = os.environ.get('NFS_PATH')\n
+
+                                 c.KubeSpawner.volumes = [\n
+                                     {
+                                         'name': 'home',
+                                         'nfs': {
+                                             'server': nfs_server,
+                                             'path': nfs_path
+                                         }
+                                     }
+                                 ]
+
+                                 c.KubeSpawner.volume_mounts = [
+                                     {
+                                         'name': 'home',
+                                         'mountPath': '/home/jovyan'
+                                      }
+                                 ]
+
+                                 # Start Notebook in user directory
+
+                                 c.KubeSpawner.notebook_dir = '/home/jovyan/{username}'
+
+                                 c.KubeSpawner.working_dir = '/home/jovyan/{username}'
+
+                                 #c.KubeSpawner.default_url = '/tree/home/{username}/lab'
+
+                                 #notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR') or '/home/jovyan'
+
+                                 #c.DockerSpawner.notebook_dir = notebook_dir
+
+                                 #c.DockerSpawner.volumes = { 'jupyterhub-user-{username}': notebook_dir }
+
+                                 #c.Spawner.cpu_limit = 1
+
+                                 #c.Spawner.mem_limit = '2G'
+
+                                 c.KubeSpawner.node_selector = {'micado.eu/node_type':'jupyter-node'}
+
+                                 c.DummyAuthenticator.password = 'password'
+                          "
+
     jupyterhub:
       type: tosca.nodes.MiCADO.Container.Application.Docker.Deployment
       properties:
         name: jupyterhub
-        image: "balalior/micado-jupyterhub:dev"
+        image: "jupyterhub/jupyterhub:1.2"
+        lifecycle:
+          postStart:
+            exec:
+              command: [ "/bin/sh", "-c", "apt update && apt install sudo && sudo cp /etc/config/jupyterhub_config.py jupyterhub_config.py && pip install jupyterhub-kubespawner" ]
         env:
           - name: HUB_IP
             value: 0.0.0.0
@@ -265,6 +329,7 @@ topology_template:
             #This is the public port to access the jupyterhub
             nodePort: 30001
           - port: 8081
+
       requirements:
        - host: jupyterhub-node
        - volume:
@@ -273,7 +338,20 @@ topology_template:
               type: tosca.relationships.AttachesTo
               properties:
                 location: /data
-    # Node type to run JupyterHub
+       - volume:
+           node: jupyterhub-configmap
+           relationship:
+             type: tosca.relationships.AttachesTo
+             properties:
+               location: /etc/config
+       - container: hello-world
+
+
+    hello-world:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      properties:
+        image: hello-world
+
     jupyterhub-node:
       type: tosca.nodes.MiCADO.EC2.Compute
       properties:
@@ -284,45 +362,48 @@ topology_template:
         #Allow all traffic to Jupyterhub
         security_group_ids:
           - sg-075395b33ac05ee99 #ADD_YOUR_SECURITY_GROUP_ID
+        #Don't change these fields
         context:
           append: true
           cloud_config: |
             runcmd:
             - sudo apt-get install -y nfs-common
+
       interfaces:
         Occopus:
           create:
             inputs:
               endpoint: https://ec2.eu-west-2.amazonaws.com  #ADD_YOUR_ENDPOINT
-    # JupyterHub data point
+
+    #Don't change these fields
     nfs-volume:
       type: tosca.nodes.MiCADO.Container.Volume.NFS
       properties:
         server: 18.133.255.231
         path: /mnt/nfs_share
-    # Node type to run Notebook Servers
+
     notebook-node:
       type: tosca.nodes.MiCADO.EC2.Compute
       properties:
-        region_name: eu-west-2 #ADD_YOUR_REGION_NAME
-        image_id: ami-09a1e275e350acf38 #ADD_YOUR_IMAGE_ID
-        instance_type: t2.medium #ADD_YOUR_IMAGE_ID
-        key_name: Dimitris-key #ADD_YOUR_KEY_NAME
-        #Allow all traffic to Jupyterhub
+        region_name: eu-west-2
+        image_id: ami-09a1e275e350acf38
+        instance_type: t2.medium
+        key_name: Dimitris-key
         security_group_ids:
-          - sg-075395b33ac05ee99 #ADD_YOUR_SECURITY_GROUP_ID
+          - sg-075395b33ac05ee99
+        #Don't change these fields
         context:
           append: true
           cloud_config: |
             runcmd:
             - sudo apt-get install -y nfs-common
+
       interfaces:
         Occopus:
           create:
             inputs:
-              endpoint: https://ec2.eu-west-2.amazonaws.com #ADD_YOUR_ENDPOINT
+              endpoint: https://ec2.eu-west-2.amazonaws.com
 
-  # JupyterHub Metrics, Alerts and Constants
   policies:
     - monitoring:
         type: tosca.policies.Monitoring.MiCADO
@@ -331,22 +412,26 @@ topology_template:
           enable_node_metrics: true
     - scalability:
         type: tosca.policies.Scaling.MiCADO.VirtualMachine.jupyterhub
-        targets: [ notebook-node ]
+        targets: [ jupyterhub-node ]
         properties:
           sources:
           - 'kube-state-metrics.kube-system.svc.cluster.local:8080'
           constants:
-            NODE_NAME: 'notebook-node'
+            NODE_NAME: 'jupyterhub-node'
             SCALE_UP_IF_FREE_SLOTS_ARE_LESS_THAN: '2'
             SCALE_DOWN_IF_FREE_SLOTS_ARE_LESS_THAN: '4'
             PODS_PER_NODE_AVG: '6'
           queries:
-            schedulable_nodes:  'count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"notebook-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 0) by (node)) OR on() vector(0)'
-            unschedulable_nodes: 'count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"notebook-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 1) by (node)) OR on() vector(0)'
+            #active_jhub_users: 'count(sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node) + sum(kube_pod_info{node=~"jupyterhub-node.*",pod=~"jupyter.*"}) by (node)) OR on() vector(0)'
+            schedulable_nodes:  'count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node)) OR on() vector(0)'
+            #users_on_schedulable_nodes
+            #free_slots_on_schedulable_nodes
+            unschedulable_nodes: 'count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 1) by (node)) OR on() vector(0)'
+            #users_on_schedulable_nodes
+            #free_slots_on_unschedulable_nodes
           min_instances: 1
-          max_instances: 3
+          max_instances: 2
 
-# JupyterHub Scaling Policy
 policy_types:
   tosca.policies.Scaling.MiCADO.VirtualMachine.jupyterhub:
     derived_from: tosca.policies.Scaling.MiCADO
@@ -357,13 +442,13 @@ policy_types:
         description: pre-define alerts for JHUB
         default:
         - alert: jhub_overloaded
-          expr: '((count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"notebook-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 0) by (node)) * {{PODS_PER_NODE_AVG}} OR on() vector(0)) - (sum(sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 0) by (node) + sum(kube_pod_info{node=~"notebook-node.*",pod=~"jupyter-.*"}) by (node)) OR on() vector(0))) < {{SCALE_UP_IF_FREE_SLOTS_ARE_LESS_THAN}}'
+          expr: '((count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node)) * {{PODS_PER_NODE_AVG}} OR on() vector(0)) - (sum(sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node) + sum(kube_pod_info{node=~"jupyterhub-node.*",pod=~"jupyter-.*"}) by (node)) OR on() vector(0))) < {{SCALE_UP_IF_FREE_SLOTS_ARE_LESS_THAN}}'
           for: 1m
         - alert: jhub_underloaded
-          expr: '((count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"notebook-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 0) by (node)) * {{PODS_PER_NODE_AVG}} OR on() vector(0)) - (sum(sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 0) by (node) + sum(kube_pod_info{node=~"notebook-node.*",pod=~"jupyter-.*"}) by (node)) OR on() vector(0))) > {{SCALE_DOWN_IF_FREE_SLOTS_ARE_LESS_THAN}}'
+          expr: '((count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node)) * {{PODS_PER_NODE_AVG}} OR on() vector(0)) - (sum(sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 0) by (node) + sum(kube_pod_info{node=~"jupyterhub-node.*",pod=~"jupyter-.*"}) by (node)) OR on() vector(0))) > {{SCALE_DOWN_IF_FREE_SLOTS_ARE_LESS_THAN}}'
           for: 3m
         - alert: jhub_node_unschedulable
-          expr: '(count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"notebook-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 1) by (node)) OR on() vector(0)) > 0'
+          expr: '(count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"jupyterhub-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"jupyterhub-node.*"}[30s]) == 1) by (node)) OR on() vector(0)) > 0'
         required: true
       scaling_rule:
         type: string
@@ -376,9 +461,16 @@ policy_types:
           print("from MiCADO, active JHUB nodes: {}".format(len(m_nodes)))
           print("from MiCADO, required JHUB nodes: {}".format(m_node_count))
           print("from MiCADO, time since required JHUB node count changed: {}".format(m_time_since_node_count_changed))
+          #print("from Prometheus, JHUB users: {}".format(active_jhub_users))
           print("from Prometheus, schedulable  nodes: {}".format(schedulable_nodes))
+          #print("from Prometheus, users on schedulable  nodes: {}".format(schedulable_nodes))
+          #print("from Prometheus, free slots on schedulable  nodes: {}".format(schedulable_nodes))
           print("from Prometheus, unschedulable  nodes: {}".format(unschedulable_nodes))
-          
+          #print("from Prometheus, users on unschedulable  nodes: {}".format(unschedulable_nodes))
+          #print("from Prometheus, free slots on unschedulable  nodes: {}".format(unschedulable_nodes))
+
+          print(max_instances)
+
           # Checking if MiCADO performs changes in the cluster nodes or if there are unschedulable nodes
           print("Checking if policy can be applied...")
           if (len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60) or jhub_node_unschedulable:
@@ -386,7 +478,7 @@ policy_types:
 
             # Query JHUB nodes and pods from kubernetes
             kube = pykube.HTTPClient(pykube.KubeConfig.from_file("/root/.kube/config"))
-            nodes = pykube.Node.objects(kube).filter(selector={"micado.eu/node_type":"notebook-node"})
+            nodes = pykube.Node.objects(kube).filter(selector={"micado.eu/node_type":"jupyterhub-node"})
             pods = pykube.Pod.objects(kube).filter(selector={"app":"jupyterhub"})
 
             # Create two dictionaries one for schedulable and one for unschedulable nodes
