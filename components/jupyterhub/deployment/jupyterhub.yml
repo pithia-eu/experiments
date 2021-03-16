@@ -321,6 +321,27 @@ topology_template:
           create:
             inputs:
               endpoint: https://ec2.eu-west-2.amazonaws.com #ADD_YOUR_ENDPOINT
+    # Node type to run Containerised Algorithms
+    algorithm-node:
+      type: tosca.nodes.MiCADO.EC2.Compute
+      properties:
+        region_name: eu-west-2 #ADD_YOUR_REGION_NAME
+        image_id: ami-09a1e275e350acf38 #ADD_YOUR_IMAGE_ID
+        instance_type: t2.medium #ADD_YOUR_IMAGE_ID
+        key_name: Dimitris-key #ADD_YOUR_KEY_NAME
+        #Allow all traffic to Jupyterhub
+        security_group_ids:
+          - sg-075395b33ac05ee99 #ADD_YOUR_SECURITY_GROUP_ID
+        context:
+          append: true
+          cloud_config: |
+            runcmd:
+            - sudo apt-get install -y nfs-common
+      interfaces:
+        Occopus:
+          create:
+            inputs:
+              endpoint: https://ec2.eu-west-2.amazonaws.com #ADD_YOUR_ENDPOINT
 
   # JupyterHub Metrics, Alerts and Constants
   policies:
@@ -378,7 +399,7 @@ policy_types:
           print("from MiCADO, time since required JHUB node count changed: {}".format(m_time_since_node_count_changed))
           print("from Prometheus, schedulable  nodes: {}".format(schedulable_nodes))
           print("from Prometheus, unschedulable  nodes: {}".format(unschedulable_nodes))
-          
+
           # Checking if MiCADO performs changes in the cluster nodes or if there are unschedulable nodes
           print("Checking if policy can be applied...")
           if (len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60) or jhub_node_unschedulable:
