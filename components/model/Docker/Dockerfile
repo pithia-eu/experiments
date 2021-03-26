@@ -23,7 +23,7 @@ RUN adduser -D -h /home/model -s /bin/sh -g root -G root -u 1000 model
 RUN echo 'model:model' | chpasswd
 
 #Configure model env
-COPY init.sh /home/model/init_db.sh
+COPY ./init.sh /home/model/init.sh
 ADD ./ACE/ /home/model/ACE/
 RUN conda env create -f ./ACE/var/data/environment.yml
 RUN apk add bash
