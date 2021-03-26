@@ -1,6 +1,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: model
+  labels:
+    app: model
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: model
+  template:
+    metadata:
+      labels:
+        app: model
+    spec:
+      containers:
+      - name: model
+        image: dkagialis/modell:08
+        lifecycle:
+          postStart:
+            exec:
+              command: [ "/bin/bash", "-c", "/etc/init.d/sshd start" ]
+        ports:
+        - containerPort: 22
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: ace-model2
   labels:
     app: ace2
@@ -115,7 +141,7 @@ spec:
         app: mysql
     spec:
       containers:
-      - image: mysql:5.6
+      - image: mysql:8.0.23
         name: mysql
         env:
           # Use secret in real usage
