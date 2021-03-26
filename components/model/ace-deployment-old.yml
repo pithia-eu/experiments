@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ace-model
+  labels:
+    app: ace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ace
+  template:
+    metadata:
+      labels:
+        app: ace
+    spec:
+      containers:
+      - name: ace
+        image: dkagialis/test:1
+        lifecycle:
+          postStart:
+            exec:
+              command: [ "/bin/sh", "-c", "/etc/init.d/sshd start" ]
+        ports:
+        - containerPort: 22

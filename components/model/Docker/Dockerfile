@@ -16,7 +16,6 @@ RUN apk add openssh
 RUN apk add openrc --no-cache
 RUN rc-update add sshd
 RUN rc-status
-
 RUN touch /run/openrc/softlevel
 
 #Add user
@@ -24,7 +23,7 @@ RUN adduser -D -h /home/model -s /bin/sh -g root -G root -u 1000 model
 RUN echo 'model:model' | chpasswd
 
 #Configure model env
-RUN apk add mysql-client
+COPY init.sh /home/model/init_db.sh
 ADD ./ACE/ /home/model/ACE/
 RUN conda env create -f ./ACE/var/data/environment.yml
 RUN apk add bash
