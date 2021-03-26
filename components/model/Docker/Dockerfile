@@ -1,4 +1,4 @@
-FROM python:3.7-alpine
+FROM continuumio/miniconda3:4.9.2-alpine
 
 RUN mkdir /home/model
 WORKDIR /home/model
@@ -21,6 +21,8 @@ RUN touch /run/openrc/softlevel
 RUN adduser -D -h /home/model -s /bin/sh -g root -G root -u 1000 model
 RUN echo 'model:model' | chpasswd
 
-apk add mysql-client
+RUN apk add mysql-client
+ADD ./ACE/ /home/model/ACE/
+RUN conda env create -f ./ACE/var/data/environment.yml
 
 EXPOSE 22

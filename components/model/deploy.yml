@@ -1,3 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ace-model2
+  labels:
+    app: ace2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ace2
+  template:
+    metadata:
+      labels:
+        app: ace2
+    spec:
+      containers:
+      - name: ace2
+        image: dkagialis/model:0.1
+        lifecycle:
+          postStart:
+            exec:
+              command: [ "/bin/sh", "-c", "/etc/init.d/sshd start" ]
+        ports:
+        - containerPort: 22
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -8,7 +34,7 @@ spec:
   selector:
     app: ace
   clusterIP: None
-
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,7 +60,7 @@ spec:
               command: [ "/bin/sh", "-c", "/etc/init.d/sshd start" ]
         ports:
         - containerPort: 22
-
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -45,7 +71,7 @@ spec:
   selector:
     app: mysql
   clusterIP: None
-
+---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -60,7 +86,7 @@ spec:
     - ReadWriteOnce
   hostPath:
     path: "/mnt/data"
-
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -72,7 +98,7 @@ spec:
   resources:
     requests:
       storage: 20Gi
-
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
