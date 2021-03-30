@@ -16,7 +16,7 @@ repositories:
 description: 'Generated from K8s manifests: deployment.yaml'
 topology_template:
   node_templates:
-    # Introducing Kubernetes Metrics to MiCADO for use by JupyterHub
+    # Add Kubernetes Metrics to MiCADO for JupyterHub
     kube-state-metrics-clusterrole:
       type: tosca.nodes.MiCADO.Kubernetes
       interfaces:
@@ -244,7 +244,7 @@ topology_template:
                   targetPort: telemetry
                 selector:
                   app.kubernetes.io/name: kube-state-metrics
-
+    # JUPYTER HUB
     # JupyterHub Deployment
     jupyterhub:
       type: tosca.nodes.MiCADO.Container.Application.Docker.Deployment
@@ -275,7 +275,7 @@ topology_template:
               type: tosca.relationships.AttachesTo
               properties:
                 location: /data
-    # Node type for JupyterHub
+    # JupyterHub Node
     jupyterhub-node:
       type: tosca.nodes.MiCADO.EC2.Compute
       properties:
@@ -296,13 +296,13 @@ topology_template:
           create:
             inputs:
               endpoint: https://ec2.eu-west-2.amazonaws.com  #ADD_YOUR_ENDPOINT
-    # JupyterHub Data Point
+    # JupyterHub DataPoint
     nfs-volume:
       type: tosca.nodes.MiCADO.Container.Volume.NFS
       properties:
         server: 18.133.255.231
         path: /mnt/nfs_share
-    # Node type for Notebook Servers
+    # JupyterHub Node for Notebook Servers
     notebook-node:
       type: tosca.nodes.MiCADO.EC2.Compute
       properties:
@@ -323,7 +323,8 @@ topology_template:
           create:
             inputs:
               endpoint: https://ec2.eu-west-2.amazonaws.com #ADD_YOUR_ENDPOINT
-    #ACE Model Service
+    # ACE MODEL
+    # ACE Model Service
     ace-service:
       type: tosca.nodes.MiCADO.Kubernetes
       interfaces:
@@ -340,9 +341,7 @@ topology_template:
                 selector:
                   app: ace
                 clusterIP: None
-    # RUN echo '%wheel ALL=(ALL) ALL' > /etc/sudoers.d/wheel
-          #RUN adduser model wheel
-    #ACE Model Deployment
+    # ACE Model Deployment
     ace-deployment:
       type: tosca.nodes.MiCADO.Kubernetes
       interfaces:
@@ -376,7 +375,7 @@ topology_template:
                                     - model-node
                     containers:
                       - name: ace
-                        image: dkagialis/ace:0.2
+                        image: dkagialis/ace:0.3
                         lifecycle:
                           postStart:
                             exec:
@@ -386,7 +385,7 @@ topology_template:
                                 - /home/model/init.sh
                         ports:
                           - containerPort: 22
-    #MySQL sql script in Config Map
+    # MYSQL script in Config Map
     mysql-configmap:
       type: tosca.nodes.MiCADO.Kubernetes
       interfaces:
@@ -402,7 +401,7 @@ topology_template:
                   app.kubernetes.io/instance: mysql
               data:
                 init.sql: 'ALTER USER root IDENTIFIED WITH mysql_native_password BY "password";'
-    # MySQL Service
+    # MYSQL Service
     mysql-service:
       type: tosca.nodes.MiCADO.Kubernetes
       interfaces:
@@ -419,7 +418,7 @@ topology_template:
                 selector:
                   app: mysql
                 clusterIP: None
-    #MySQL data Persistent Volume
+    # MYSQL Data Persistent Volume
     mysql-pv-volume-persistentvolume:
       type: tosca.nodes.MiCADO.Kubernetes
       interfaces:
@@ -440,7 +439,7 @@ topology_template:
                   - ReadWriteOnce
                 hostPath:
                   path: /mnt/data
-    MySQL data Persistent Volume Claim
+    # MYSQL Data Persistent Volume Claim
     mysql-pv-claim-persistentvolumeclaim:
       type: tosca.nodes.MiCADO.Kubernetes
       interfaces:
@@ -458,7 +457,7 @@ topology_template:
                 resources:
                   requests:
                     storage: 20Gi
-    #MySQL Deployment
+    # MYSQL Deployment
     mysql-deployment:
       type: tosca.nodes.MiCADO.Kubernetes
       interfaces:
@@ -516,7 +515,7 @@ topology_template:
                       - name: configmap
                         configMap:
                           name: mysql
-    # Node type to run ACE model and MySQL
+    # ACE model and MySQL Node
     model-node:
       type: tosca.nodes.MiCADO.EC2.Compute
       properties:
@@ -536,7 +535,7 @@ topology_template:
           create:
             inputs:
               endpoint: https://ec2.eu-west-2.amazonaws.com #ADD_YOUR_ENDPOINT
-
+  # JUPYTER HUB Policies
   # JupyterHub Metrics, Alerts and Constants
   policies:
     - monitoring:
@@ -560,7 +559,6 @@ topology_template:
             unschedulable_nodes: 'count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"notebook-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 1) by (node)) OR on() vector(0)'
           min_instances: 1
           max_instances: 3
-
 # JupyterHub Scaling Policy
 policy_types:
   tosca.policies.Scaling.MiCADO.VirtualMachine.jupyterhub:
