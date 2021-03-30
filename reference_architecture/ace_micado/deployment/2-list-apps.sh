@@ -9,11 +9,6 @@ if [ -z "$MICADO_MASTER" ]; then
   exit
 fi
 
-if [ -z "$APP_ID" ]; then
-  echo "Please, set APP_ID in file named \"$settings_file\"!"
-  exit
-fi
-
 if [ -z "$SSL_USER" ]; then
   echo " Please, set SSL_USER in file named \"$settings_file\"!"
   exit
@@ -24,5 +19,5 @@ if [ -z "$SSL_PASS" ]; then
   exit
 fi
 
-echo "Submitting pithia.yml to MiCADO at $MICADO_MASTER with appid \"$APP_ID\"..."
-curl --insecure -s -F adt=@"ace.yml" -X POST -u "$SSL_USER":"$SSL_PASS" https://$MICADO_MASTER:$MICADO_PORT/toscasubmitter/v2.0/applications/$APP_ID/ | jq
+echo "Retrieving list of running apps from MiCADO at $MICADO_MASTER..."
+curl --insecure -s -X GET -u "$SSL_USER":"$SSL_PASS" https://$MICADO_MASTER:$MICADO_PORT/toscasubmitter/v2.0/applications/ | jq
