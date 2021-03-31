@@ -375,7 +375,7 @@ topology_template:
                                     - model-node
                     containers:
                       - name: ace
-                        image: dkagialis/ace:0.3
+                        image: dkagialis/ace:0.4
                         lifecycle:
                           postStart:
                             exec:
