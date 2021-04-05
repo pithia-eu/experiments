@@ -148,8 +148,8 @@ Products:
 
 MYSQLDB:
   USER : &PGDB_USER root
-  PASS : &PGDB_PASS '@ThHer!975'
-  HOST : &PGDB_HOST localhost
+  PASS : &PGDB_PASS 'password'
+  HOST : &PGDB_HOST mysql
   PORT : &PGDB_PORT 3306
   DB   : &PGDB_DB server_dias_devel
   SQLALCHEMY_DATABASE_URI : !join ['mysql+mysqlconnector://', *PGDB_USER, ':', *PGDB_PASS, '@', *PGDB_HOST, ':', *PGDB_PORT, '/', *PGDB_DB]
