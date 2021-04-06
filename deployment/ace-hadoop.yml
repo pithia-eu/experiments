@@ -1,0 +1,987 @@
+# JupyterHub Application Description Template
+# Components:
+# JupyterHub metrics from Kubernetes [lines 17 - 244]
+# JupyterHub deployment  [lines 246 -323]
+# JupyterHub Metrics, Alerts, Constants [lines 325 - 352]
+# JupyterHub Scaling Policy[lines 354 -476]
+# ACE model deployment
+# MySQL deployment
+# Project repository:
+
+tosca_definitions_version: tosca_simple_yaml_1_2
+imports:
+- https://raw.githubusercontent.com/micado-scale/tosca/develop/micado_types.yaml
+repositories:
+  docker_hub: https://hub.docker.com/
+description: 'Generated from K8s manifests: deployment.yaml'
+topology_template:
+  node_templates:
+    # Add Kubernetes Metrics to MiCADO for JupyterHub
+    kube-state-metrics-clusterrole:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                labels:
+                  app.kubernetes.io/name: kube-state-metrics
+                  app.kubernetes.io/version: v1.8.0
+                name: kube-state-metrics
+              rules:
+              - apiGroups:
+                - ''
+                resources:
+                - configmaps
+                - secrets
+                - nodes
+                - pods
+                - services
+                - resourcequotas
+                - replicationcontrollers
+                - limitranges
+                - persistentvolumeclaims
+                - persistentvolumes
+                - namespaces
+                - endpoints
+                verbs:
+                - list
+                - watch
+              - apiGroups:
+                - extensions
+                resources:
+                - daemonsets
+                - deployments
+                - replicasets
+                - ingresses
+                verbs:
+                - list
+                - watch
+              - apiGroups:
+                - apps
+                resources:
+                - statefulsets
+                - daemonsets
+                - deployments
+                - replicasets
+                verbs:
+                - list
+                - watch
+              - apiGroups:
+                - batch
+                resources:
+                - cronjobs
+                - jobs
+                verbs:
+                - list
+                - watch
+              - apiGroups:
+                - autoscaling
+                resources:
+                - horizontalpodautoscalers
+                verbs:
+                - list
+                - watch
+              - apiGroups:
+                - authentication.k8s.io
+                resources:
+                - tokenreviews
+                verbs:
+                - create
+              - apiGroups:
+                - authorization.k8s.io
+                resources:
+                - subjectaccessreviews
+                verbs:
+                - create
+              - apiGroups:
+                - policy
+                resources:
+                - poddisruptionbudgets
+                verbs:
+                - list
+                - watch
+              - apiGroups:
+                - certificates.k8s.io
+                resources:
+                - certificatesigningrequests
+                verbs:
+                - list
+                - watch
+              - apiGroups:
+                - storage.k8s.io
+                resources:
+                - storageclasses
+                - volumeattachments
+                verbs:
+                - list
+                - watch
+              - apiGroups:
+                - admissionregistration.k8s.io
+                resources:
+                - mutatingwebhookconfigurations
+                - validatingwebhookconfigurations
+                verbs:
+                - list
+                - watch
+              - apiGroups:
+                - networking.k8s.io
+                resources:
+                - networkpolicies
+                verbs:
+                - list
+                - watch
+    kube-state-metrics-clusterrolebinding:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRoleBinding
+              metadata:
+                labels:
+                  app.kubernetes.io/name: kube-state-metrics
+                  app.kubernetes.io/version: v1.8.0
+                name: kube-state-metrics
+              roleRef:
+                apiGroup: rbac.authorization.k8s.io
+                kind: ClusterRole
+                name: kube-state-metrics
+              subjects:
+              - kind: ServiceAccount
+                name: kube-state-metrics
+                namespace: kube-system
+    kube-state-metrics-serviceaccount:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: v1
+              kind: ServiceAccount
+              metadata:
+                labels:
+                  app.kubernetes.io/name: kube-state-metrics
+                  app.kubernetes.io/version: v1.8.0
+                name: kube-state-metrics
+                namespace: kube-system
+    kube-state-metrics-deployment:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                labels:
+                  app.kubernetes.io/name: kube-state-metrics
+                  app.kubernetes.io/version: v1.8.0
+                name: kube-state-metrics
+                namespace: kube-system
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app.kubernetes.io/name: kube-state-metrics
+                template:
+                  metadata:
+                    labels:
+                      app.kubernetes.io/name: kube-state-metrics
+                      app.kubernetes.io/version: v1.8.0
+                  spec:
+                    tolerations:
+                    - key: node-role.kubernetes.io/master
+                      effect: NoSchedule
+                    containers:
+                    - image: quay.io/coreos/kube-state-metrics:v1.8.0
+                      livenessProbe:
+                        httpGet:
+                          path: /healthz
+                          port: 8080
+                        initialDelaySeconds: 5
+                        timeoutSeconds: 5
+                      name: kube-state-metrics
+                      ports:
+                      - containerPort: 8080
+                        name: http-metrics
+                      - containerPort: 8081
+                        name: telemetry
+                      readinessProbe:
+                        httpGet:
+                          path: /
+                          port: 8081
+                        initialDelaySeconds: 5
+                        timeoutSeconds: 5
+                    nodeSelector:
+                      kubernetes.io/os: linux
+                    serviceAccountName: kube-state-metrics
+    kube-state-metrics-service:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: v1
+              kind: Service
+              metadata:
+                labels:
+                  app.kubernetes.io/name: kube-state-metrics
+                  app.kubernetes.io/version: v1.8.0
+                name: kube-state-metrics
+                namespace: kube-system
+              spec:
+                clusterIP: None
+                ports:
+                - name: http-metrics
+                  port: 8080
+                  targetPort: http-metrics
+                - name: telemetry
+                  port: 8081
+                  targetPort: telemetry
+                selector:
+                  app.kubernetes.io/name: kube-state-metrics
+    # JUPYTER HUB
+    # JupyterHub Deployment
+    jupyterhub:
+      type: tosca.nodes.MiCADO.Container.Application.Docker.Deployment
+      properties:
+        name: jupyterhub
+        image: "balalior/micado-jupyterhub:dev"
+        env:
+          - name: HUB_IP
+            value: 0.0.0.0
+          - name: SPAWNER_CLASS
+            value: "kubespawner.KubeSpawner"
+          - name: K8S_HUB_API_IP
+            value: "jupyterhub-clusterip"
+          - name: NFS_SERVER
+            value: 18.133.255.231
+          - name: NFS_PATH
+            value: "/mnt/nfs_share/users"
+        ports:
+          - port: 8000
+            #This is the public port to access the jupyterhub
+            nodePort: 30001
+          - port: 8081
+      requirements:
+       - host: jupyterhub-node
+       - volume:
+            node: nfs-volume
+            relationship:
+              type: tosca.relationships.AttachesTo
+              properties:
+                location: /data
+    # JupyterHub Node
+    jupyterhub-node:
+      type: tosca.nodes.MiCADO.EC2.Compute
+      properties:
+        region_name: eu-west-2 #ADD_YOUR_REGION_NAME
+        image_id: ami-09a1e275e350acf38 #ADD_YOUR_IMAGE_ID
+        instance_type: t2.medium #ADD_YOUR_IMAGE_ID
+        key_name: Dimitris-key #ADD_YOUR_KEY_NAME
+        #Allow all traffic to Jupyterhub
+        security_group_ids:
+          - sg-075395b33ac05ee99 #ADD_YOUR_SECURITY_GROUP_ID
+        context:
+          append: true
+          cloud_config: |
+            runcmd:
+            - sudo apt-get install -y nfs-common
+      interfaces:
+        Occopus:
+          create:
+            inputs:
+              endpoint: https://ec2.eu-west-2.amazonaws.com  #ADD_YOUR_ENDPOINT
+    # JupyterHub DataPoint
+    nfs-volume:
+      type: tosca.nodes.MiCADO.Container.Volume.NFS
+      properties:
+        server: 18.133.255.231
+        path: /mnt/nfs_share
+    # JupyterHub Node for Notebook Servers
+    notebook-node:
+      type: tosca.nodes.MiCADO.EC2.Compute
+      properties:
+        region_name: eu-west-2 #ADD_YOUR_REGION_NAME
+        image_id: ami-09a1e275e350acf38 #ADD_YOUR_IMAGE_ID
+        instance_type: t2.medium #ADD_YOUR_IMAGE_ID
+        key_name: Dimitris-key #ADD_YOUR_KEY_NAME
+        #Allow all traffic to Jupyterhub
+        security_group_ids:
+          - sg-075395b33ac05ee99 #ADD_YOUR_SECURITY_GROUP_ID
+        context:
+          append: true
+          cloud_config: |
+            runcmd:
+            - sudo apt-get install -y nfs-common
+      interfaces:
+        Occopus:
+          create:
+            inputs:
+              endpoint: https://ec2.eu-west-2.amazonaws.com #ADD_YOUR_ENDPOINT
+    # ACE MODEL
+    # ACE Model Service
+    ace-service:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: ace
+              spec:
+                ports:
+                  - port: 22
+                selector:
+                  app: ace
+                clusterIP: None
+    # ACE Model Deployment
+    ace-deployment:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: ace
+                labels:
+                  app: ace
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app: ace
+                template:
+                  metadata:
+                    labels:
+                      app: ace
+                  spec:
+                    affinity:
+                      nodeAffinity:
+                        requiredDuringSchedulingIgnoredDuringExecution:
+                          nodeSelectorTerms:
+                            - matchExpressions:
+                                - key: micado.eu/node_type
+                                  operator: In
+                                  values:
+                                    - model-node
+                    containers:
+                      - name: ace
+                        image: dkagialis/ace:0.4
+                        lifecycle:
+                          postStart:
+                            exec:
+                              command:
+                                - /bin/bash
+                                - -c
+                                - /home/model/init.sh
+                        ports:
+                          - containerPort: 22
+    # MYSQL script in Config Map
+    mysql-configmap:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: mysql
+                labels:
+                  app.kubernetes.io/name: mysql
+                  app.kubernetes.io/instance: mysql
+              data:
+                init.sql: 'ALTER USER root IDENTIFIED WITH mysql_native_password BY "password";'
+    # MYSQL Service
+    mysql-service:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: mysql
+              spec:
+                ports:
+                  - port: 3306
+                selector:
+                  app: mysql
+                clusterIP: None
+    # MYSQL Data Persistent Volume
+    mysql-pv-volume-persistentvolume:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: v1
+              kind: PersistentVolume
+              metadata:
+                name: mysql-pv-volume
+                labels:
+                  type: local
+              spec:
+                storageClassName: manual
+                capacity:
+                  storage: 20Gi
+                accessModes:
+                  - ReadWriteOnce
+                hostPath:
+                  path: /mnt/data
+    # MYSQL Data Persistent Volume Claim
+    mysql-pv-claim-persistentvolumeclaim:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: v1
+              kind: PersistentVolumeClaim
+              metadata:
+                name: mysql-pv-claim
+              spec:
+                storageClassName: manual
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 20Gi
+    # MYSQL Deployment
+    mysql-deployment:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: mysql
+              spec:
+                selector:
+                  matchLabels:
+                    app: mysql
+                strategy:
+                  type: Recreate
+                template:
+                  metadata:
+                    labels:
+                      app: mysql
+                  spec:
+                    affinity:
+                      nodeAffinity:
+                        requiredDuringSchedulingIgnoredDuringExecution:
+                          nodeSelectorTerms:
+                            - matchExpressions:
+                                - key: micado.eu/node_type
+                                  operator: In
+                                  values:
+                                    - model-node
+                    containers:
+                      - image: mysql:8.0.23
+                        name: mysql
+                        env:
+                          - name: MYSQL_ROOT_PASSWORD
+                            value: password
+                        ports:
+                          - containerPort: 3306
+                            name: mysql
+                        volumeMounts:
+                          - name: mysql-persistent-storage
+                            mountPath: /var/lib/mysql
+                          - name: configmap
+                            mountPath: /db_config
+                        readinessProbe:
+                          exec:
+                            command:
+                              - /bin/bash
+                              - -c
+                              - mysql -u root -ppassword mysql < /db_config/init.sql
+                    volumes:
+                      - name: mysql-persistent-storage
+                        persistentVolumeClaim:
+                          claimName: mysql-pv-claim
+                      - name: configmap
+                        configMap:
+                          name: mysql
+    # ACE model and MySQL Node
+    model-node:
+      type: tosca.nodes.MiCADO.EC2.Compute
+      properties:
+        region_name: eu-west-2 #ADD_YOUR_REGION_NAME
+        image_id: ami-09a1e275e350acf38 #ADD_YOUR_IMAGE_ID
+        instance_type: t2.medium #ADD_YOUR_IMAGE_ID
+        key_name: Dimitris-key #ADD_YOUR_KEY_NAME
+        security_group_ids:
+          - sg-075395b33ac05ee99 #ADD_YOUR_SECURITY_GROUP_ID
+        context:
+          append: true
+          cloud_config: |
+            runcmd:
+            - sudo apt-get install -y nfs-common
+      interfaces:
+        Occopus:
+          create:
+            inputs:
+              endpoint: https://ec2.eu-west-2.amazonaws.com #ADD_YOUR_ENDPOINT
+    # Apache Hadoop
+    hdp-master:
+      type: tosca.nodes.MiCADO.EC2.Compute
+      properties:
+        region_name: eu-west-2 #ADD_YOUR_REGION_NAME
+        image_id: ami-09a1e275e350acf38 #ADD_YOUR_IMAGE_ID
+        instance_type: t2.medium #ADD_YOUR_IMAGE_ID
+        key_name: Dimitris-key #ADD_YOUR_KEY_NAME
+        security_group_ids:
+          - sg-075395b33ac05ee99 #ADD_YOUR_SECURITY_GROUP_ID
+        context:
+          append: true
+          cloud_config: |
+            runcmd:
+            - sudo apt-get install -y nfs-common
+      interfaces:
+        Occopus:
+          create:
+            inputs:
+              interface_cloud: ec2
+              #root_block_device: {"volume_size": "50"}
+              endpoint: https://ec2.eu-west-2.amazonaws.com #ADD_YOUR_ENDPOINT
+
+    hdp-slave:
+      type: tosca.nodes.MiCADO.EC2.Compute
+      properties:
+        region_name: eu-west-2 #ADD_YOUR_REGION_NAME
+        image_id: ami-09a1e275e350acf38 #ADD_YOUR_IMAGE_ID
+        instance_type: t2.medium #ADD_YOUR_IMAGE_ID
+        key_name: Dimitris-key #ADD_YOUR_KEY_NAME
+        security_group_ids:
+          - sg-075395b33ac05ee99 #ADD_YOUR_SECURITY_GROUP_ID
+        context:
+          append: true
+          cloud_config: |
+            runcmd:
+            - sudo apt-get install -y nfs-common
+      interfaces:
+        Occopus:
+          create:
+            inputs:
+              interface_cloud: ec2
+              #root_block_device: {"volume_size": "50"}
+              endpoint: https://ec2.eu-west-2.amazonaws.com #ADD_YOUR_ENDPOINT
+      capabilities:
+        scalable:
+          properties:
+            min_instances: 3
+            max_instances: 5
+
+    # Describe common
+    hdfs-config:
+      type: tosca.nodes.MiCADO.Container.Config.Kubernetes
+      properties:
+        data:
+          HDFS-SITE.XML_dfs.namenode.name.dir: "/data/namenode"
+          HDFS-SITE.XML_dfs.datanode.data.dir: "/data/datanode"
+          HDFS-SITE.XML_dfs.namenode.rpc-address: "hdfs-namenode-0.hdfs-namenode:9820"
+          HDFS-SITE.XML_dfs.permissions: "false"
+          HDFS-SITE.XML_hadoop.tmp.dir: "/tmp"
+          LOG4J.PROPERTIES_log4j.rootLogger: "INFO, stdout"
+          LOG4J.PROPERTIES_log4j.appender.stdout: "org.apache.log4j.ConsoleAppender"
+          LOG4J.PROPERTIES_log4j.appender.stdout.layout: "org.apache.log4j.PatternLayout"
+          LOG4J.PROPERTIES_log4j.appender.stdout.layout.ConversionPattern: "%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n"
+          CORE-SITE.XML_fs.defaultFS: "hdfs://hdfs-namenode-0.hdfs-namenode:9820"
+          CORE-SITE.XML_hadoop.tmp.dir: "/tmp"
+
+    emptydir-volume:
+      type: tosca.nodes.MiCADO.Container.Volume.EmptyDir
+      properties:
+        name: data
+        path: /data
+
+    # Describe HDFS-NameNode
+    hdfs-namenode:
+      type: tosca.nodes.MiCADO.Container.Application.Docker.StatefulSet
+      properties:
+        image: flokkr/hadoop
+        args: [ "hdfs", "namenode" ]
+        envFrom:
+          - configMapRef:
+              name: hdfs-config
+        labels:
+          component: namenode
+        ports:
+          - port: 9870
+            nodePort: 30010
+            metadata:
+              name: hdfs-namenode-public
+          - port: 9870
+            clusterIP: None
+            metadata:
+              name: hdfs-namenode
+      requirements:
+        - host: hdp-master
+        - volume: emptydir-volume
+        - container: hdfs-namenode-init
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              spec:
+                serviceName: hdfs-namenode
+
+    hdfs-namenode-init:
+      type: tosca.nodes.MiCADO.Container.Application.Docker.Init
+      requirements:
+        - volume: emptydir-volume
+      properties:
+        name: hdfs-init
+        image: flokkr/hadoop
+        args: [ "hadoop","version" ]
+        env:
+          - name: "ENSURE_NAMENODE_DIR"
+            value: "/data/namenode"
+        envFrom:
+          - configMapRef:
+              name: hdfs-config
+
+    # Describe HDFS-DataNode
+    hdfs-datanode:
+      type: tosca.nodes.MiCADO.Container.Application.Docker.StatefulSet
+      properties:
+        image: flokkr/hadoop
+        args: [ "hdfs", "datanode" ]
+        env:
+          - name: "WAITFOR"
+            value: "hdfs-namenode-0.hdfs-namenode:9820"
+        envFrom:
+          - configMapRef:
+              name: hdfs-config
+        labels:
+          component: datanode
+        ports:
+          - port: 9874
+            nodePort: 30020
+            metadata:
+              name: hdfs-datanode-public
+          - port: 9874
+            clusterIP: None
+            metadata:
+              name: hdfs-datanode
+      requirements:
+        - host: hdp-slave
+        - volume: emptydir-volume
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              spec:
+                serviceName: hdfs-datanode
+                replicas: 3
+                template:
+                  spec:
+                    affinity:
+                      podAntiAffinity:
+                        requiredDuringSchedulingIgnoredDuringExecution:
+                          - labelSelector:
+                              matchExpressions:
+                                - key: "app"
+                                  operator: In
+                                  values:
+                                    - hdfs
+                            topologyKey: "kubernetes.io/hostname"
+
+    # Describe YARN common
+    yarn-config:
+      type: tosca.nodes.MiCADO.Container.Config.Kubernetes
+      properties:
+        data:
+          MAPRED-SITE.XML_mapreduce.framework.name: "yarn"
+          MAPRED-SITE.XML_yarn.app.mapreduce.am.env: "HADOOP_MAPRED_HOME=/opt/hadoop"
+          MAPRED-SITE.XML_mapreduce.map.env: "HADOOP_MAPRED_HOME=/opt/hadoop"
+          MAPRED-SITE.XML_mapreduce.reduce.env: "HADOOP_MAPRED_HOME=/opt/hadoop"
+          YARN-SITE.XML_yarn.resourcemanager.hostname: "yarn-resourcemanager-0.yarn-resourcemanager"
+          YARN-SITE.XML_yarn.resourcemanager.bind-host: "0.0.0.0"
+          YARN-SITE.XML_yarn.nodemanager.bind-host: "0.0.0.0"
+          YARN-SITE.XML_yarn.webapp.ui2.enable: "true"
+          YARN-SITE.XML_yarn.nodemanager.pmem-check-enabled: "false"
+          YARN-SITE.XML_yarn.nodemanager.delete.debug-delay-sec: "600"
+          YARN-SITE.XML_yarn.nodemanager.vmem-check-enabled: "false"
+          YARN-SITE.XML_yarn.nodemanager.aux-services: "mapreduce_shuffle"
+          YARN-SITE.XML_yarn.nodemanager.auxservices.mapreduce.shuffle.class: "org.apache.hadoop.mapred.ShuffleHandler"
+          YARN-SITE.XML_yarn.timeline-service.hostname: yarn-timeline-0.yarn-timeline
+          YARN-SITE.XML_yarn.log.server.url: http://yarn-timeline-0.yarn-timeline:8188/applicationhistory/logs/
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.maximum-applications: "10000"
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.maximum-am-resource-percent: "0.1"
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.resource-calculator: "org.apache.hadoop.yarn.util.resource.DefaultResourceCalculator"
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.queues: "default"
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.capacity: "100"
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.user-limit-factor: "1"
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.maximum-capacity: "100"
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.state: "RUNNING"
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.acl_submit_applications: "*"
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.root.default.acl_administer_queue: "*"
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.node-locality-delay: "40"
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.queue-mappings: ""
+          CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.queue-mappings-override.enable: "false"
+
+    # Describe YARN ResourceManager
+    yarn-resourcemanager:
+      type: tosca.nodes.MiCADO.Container.Application.Docker.StatefulSet
+      properties:
+        image: flokkr/hadoop
+        args: [ "yarn", "resourcemanager" ]
+        envFrom:
+          - configMapRef:
+              name: yarn-config
+          - configMapRef:
+              name: hdfs-config
+        labels:
+          component: resourcemanager
+        ports:
+          - port: 8088
+            nodePort: 30040
+            metadata:
+              name: yarn-resourcemanager-public
+          - port: 8088
+            clusterIP: None
+            metadata:
+              name: yarn-resourcemanager
+      requirements:
+        - host: hdp-master
+        - volume: emptydir-volume
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              spec:
+                serviceName: yarn-resourcemanager
+
+    # Describe YARN NodeManager
+    yarn-nodemanager:
+      type: tosca.nodes.MiCADO.Container.Application.Docker.StatefulSet
+      properties:
+        image: flokkr/hadoop
+        args: [ "yarn", "nodemanager" ]
+        env:
+          - name: WAITFOR
+            value: "yarn-resourcemanager-0.yarn-resourcemanager:8031"
+        envFrom:
+          - configMapRef:
+              name: yarn-config
+          - configMapRef:
+              name: hdfs-config
+        labels:
+          component: nodemanager
+        ports:
+          - port: 8042
+            nodePort: 30030
+            metadata:
+              name: yarn-nodemanager-public
+          - port: 8042
+            clusterIP: None
+            metadata:
+              name: yarn-nodemanager
+      requirements:
+        - host: hdp-slave
+        - volume: emptydir-volume
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              spec:
+                serviceName: yarn-nodemanager
+                replicas: 3
+                template:
+                  spec:
+                    affinity:
+                      podAntiAffinity:
+                        requiredDuringSchedulingIgnoredDuringExecution:
+                          - labelSelector:
+                              matchExpressions:
+                                - key: "app"
+                                  operator: In
+                                  values:
+                                    - yarn
+                            topologyKey: "kubernetes.io/hostname"
+
+    # Describe YARN Timeline
+    yarn-timeline:
+      type: tosca.nodes.MiCADO.Container.Application.Docker.StatefulSet
+      properties:
+        image: flokkr/hadoop
+        args: [ "yarn", "timelineserver" ]
+        envFrom:
+          - configMapRef:
+              name: yarn-config
+          - configMapRef:
+              name: hdfs-config
+        labels:
+          component: timeline
+        ports:
+          - port: 8188
+            nodePort: 30050
+            metadata:
+              name: yarn-timeline-public
+          - port: 8188
+            clusterIP: None
+            metadata:
+              name: yarn-timeline
+      requirements:
+        - host: hdp-master
+        - volume: emptydir-volume
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              spec:
+                serviceName: yarn-timeline
+  # JUPYTER HUB Policies
+  # JupyterHub Metrics, Alerts and Constants
+  policies:
+    - monitoring:
+        type: tosca.policies.Monitoring.MiCADO
+        properties:
+          enable_container_metrics: true
+          enable_node_metrics: true
+    - scalability:
+        type: tosca.policies.Scaling.MiCADO.VirtualMachine.jupyterhub
+        targets: [ notebook-node ]
+        properties:
+          sources:
+          - 'kube-state-metrics.kube-system.svc.cluster.local:8080'
+          constants:
+            NODE_NAME: 'notebook-node'
+            SCALE_UP_IF_FREE_SLOTS_ARE_LESS_THAN: '2'
+            SCALE_DOWN_IF_FREE_SLOTS_ARE_LESS_THAN: '4'
+            PODS_PER_NODE_AVG: '6'
+          queries:
+            schedulable_nodes:  'count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"notebook-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 0) by (node)) OR on() vector(0)'
+            unschedulable_nodes: 'count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"notebook-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 1) by (node)) OR on() vector(0)'
+          min_instances: 1
+          max_instances: 3
+# JupyterHub Scaling Policy
+policy_types:
+  tosca.policies.Scaling.MiCADO.VirtualMachine.jupyterhub:
+    derived_from: tosca.policies.Scaling.MiCADO
+    description: base MiCADO policy defining data sources, constants, queries, alerts, limits and rules
+    properties:
+      alerts:
+        type: list
+        description: pre-define alerts for JHUB
+        default:
+        - alert: jhub_overloaded
+          expr: '((count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"notebook-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 0) by (node)) * {{PODS_PER_NODE_AVG}} OR on() vector(0)) - (sum(sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 0) by (node) + sum(kube_pod_info{node=~"notebook-node.*",pod=~"jupyter-.*"}) by (node)) OR on() vector(0))) < {{SCALE_UP_IF_FREE_SLOTS_ARE_LESS_THAN}}'
+          for: 1m
+        - alert: jhub_underloaded
+          expr: '((count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"notebook-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 0) by (node)) * {{PODS_PER_NODE_AVG}} OR on() vector(0)) - (sum(sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 0) by (node) + sum(kube_pod_info{node=~"notebook-node.*",pod=~"jupyter-.*"}) by (node)) OR on() vector(0))) > {{SCALE_DOWN_IF_FREE_SLOTS_ARE_LESS_THAN}}'
+          for: 3m
+        - alert: jhub_node_unschedulable
+          expr: '(count(sum(kube_node_status_condition{condition="Ready",status="true",node=~"notebook-node.*"} == 1) by (node) and sum(max_over_time(kube_node_spec_unschedulable{node=~"notebook-node.*"}[30s]) == 1) by (node)) OR on() vector(0)) > 0'
+        required: true
+      scaling_rule:
+        type: string
+        description: pre-define scaling rule for JHUB
+        default: |
+
+          # JHUB status
+          print("JupyterHub policy")
+          print("Current status:")
+          print("from MiCADO, active JHUB nodes: {}".format(len(m_nodes)))
+          print("from MiCADO, required JHUB nodes: {}".format(m_node_count))
+          print("from MiCADO, time since required JHUB node count changed: {}".format(m_time_since_node_count_changed))
+          print("from Prometheus, schedulable  nodes: {}".format(schedulable_nodes))
+          print("from Prometheus, unschedulable  nodes: {}".format(unschedulable_nodes))
+
+          # Checking if MiCADO performs changes in the cluster nodes or if there are unschedulable nodes
+          print("Checking if policy can be applied...")
+          if (len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60) or jhub_node_unschedulable:
+            print("Applying...")
+
+            # Query JHUB nodes and pods from kubernetes
+            kube = pykube.HTTPClient(pykube.KubeConfig.from_file("/root/.kube/config"))
+            nodes = pykube.Node.objects(kube).filter(selector={"micado.eu/node_type":"notebook-node"})
+            pods = pykube.Pod.objects(kube).filter(selector={"app":"jupyterhub"})
+
+            # Create two dictionaries one for schedulable and one for unschedulable nodes
+            # for key use the name of the nodes and for values the sum of the running pods on each node
+            print("Collecting JHUB nodes and pods information...")
+            pods_per_schedulable_nodes = dict()
+            pods_per_unschedulable_nodes = dict()
+            for node in nodes:
+              #node.obj['status']['conditions'][4].get('status') and
+              if node.obj['status']['conditions'][4].get('status') == "True":
+                if node.obj["spec"].get("unschedulable"):
+                  pods_per_unschedulable_nodes[node.obj["metadata"].get("name")] = 0
+                else:
+                  pods_per_schedulable_nodes[node.obj["metadata"].get("name")] = 0
+            for pod in pods:
+              if pod.obj["spec"].get("nodeName") in pods_per_unschedulable_nodes:
+                pods_per_unschedulable_nodes[pod.obj["spec"].get("nodeName")] += 1
+              elif pod.obj["spec"].get("nodeName") in pods_per_schedulable_nodes:
+                pods_per_schedulable_nodes[pod.obj["spec"].get("nodeName")] += 1
+
+            print("Schedulable nodes:")
+            print(pods_per_schedulable_nodes)
+            if pods_per_schedulable_nodes:
+              print("least utilised schedulable node: {}".format(min(pods_per_schedulable_nodes, key=pods_per_schedulable_nodes.get)))
+              print("pods: {}".format(min(pods_per_schedulable_nodes.values())))
+            print("Unschedulable nodes:")
+            print(pods_per_unschedulable_nodes)
+            if pods_per_unschedulable_nodes:
+              print("most utilised unschedulable node: {}".format(max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get)))
+              print("pods: {}".format(max(pods_per_unschedulable_nodes.values())))
+
+            # Checking if Prometheus fires an overloaded alert
+            if jhub_overloaded: # and m_node != max_instance
+              print("JupyterHub is overloaded")
+              # If there are unschedulable nodes make SCHEDULABLE the most utilised node, else ADD a new node
+              if pods_per_unschedulable_nodes:
+                most_utilised_unschedulable_node = max(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get)
+                print("TEST most_utilised_unschedulable_node", most_utilised_unschedulable_node)
+                for node in nodes:
+                  if node.obj["metadata"].get("name") == most_utilised_unschedulable_node:
+                    print("Making schedulable the most utilised unschedulable node: {}".format(node))
+                    node.uncordon()
+                    pods_per_unschedulable_nodes.pop(most_utilised_unschedulable_node, node)
+                    print("Test after pop!!", pods_per_unschedulable_nodes)
+                    break
+              else:
+                print("Adding a new node (if not max instances)..")
+                m_node_count+=1
+
+            # Checking if Prometheus fires an underloaded alert
+            elif jhub_underloaded and len(m_nodes)>1:
+              print("JupyterHub is underloaded")
+              # Make the least utilised node UNSCHEDULABLE
+              for node in nodes:
+                if node.obj["metadata"].get("name") == min(pods_per_schedulable_nodes, key=pods_per_schedulable_nodes.get):
+                  print("Making unschedulable the leas utilised node: {}".format(node))
+                  node.cordon()
+                  break
+            else:
+              print("No active alerts on Prometheus")
+
+            # If there is an empty and unschedulable nodes REMOVE it
+            if pods_per_unschedulable_nodes and min(pods_per_unschedulable_nodes.values()) == 0:
+              for node in nodes:
+                if node.obj["metadata"].get("name") == min(pods_per_unschedulable_nodes, key=pods_per_unschedulable_nodes.get):
+                  m_nodes_todrop.append(node.obj["status"]["addresses"][0].get("address"))
+                  print("Removing a empty node: {}".format(node))
+                  break
+            else:
+              print("No empty nodes")
+
+          else:
+            print('Transient phase, skipping...')
+
+        required: true
