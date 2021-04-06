@@ -1,0 +1,7 @@
+Running the ACE plotter from terminal: 
+(base)jovyan@jupyter-u1:~/u1/pithia/demo/ACE/bin$ conda activate ace 
+(ace) jovyan@jupyter-u1:~/u1/pithia/demo/ACE/bin$ ls 
+acebin.py  oper.py  plotter.py  queries.py  test 
+(ace) jovyan@jupyter-u1:~/u1/pithia/demo/ACE/bin$ python plotter.py 2019-05-14 2019-05-15 
+INFO - Plotting data for [2019-05-14T00:00:00 2019-05-15T00:00:00] - 09:16:36 
+(ace) jovyan@jupyter-u1:~/u1/pithia/demo/ACE/bin$
