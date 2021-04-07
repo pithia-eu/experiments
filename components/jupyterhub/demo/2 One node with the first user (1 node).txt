@@ -1,0 +1,24 @@
+
+[ONE USER IN ONE NODE]
+
+==== [2021-03-30 19:49:58] Executing the user defined algorithm starts... ====
+JupyterHub policy
+Current status:
+from MiCADO, active JHUB nodes: 1
+from MiCADO, required JHUB nodes: 1
+from MiCADO, time since required JHUB node count changed: 182
+from Prometheus, schedulable  nodes: 1.0
+from Prometheus, unschedulable  nodes: 0.0
+Checking if policy can be applied...
+Applying...
+Collecting JHUB nodes and pods information...
+Schedulable nodes:
+{'notebook-node-172-31-37-42': 1}
+least utilised schedulable node: notebook-node-172-31-37-42
+pods: 1
+Unschedulable nodes:
+{}
+No active alerts on Prometheus
+No empty nodes
+==== [2021-03-30 19:49:58] Executing the user defined algorithm finished. ====
+

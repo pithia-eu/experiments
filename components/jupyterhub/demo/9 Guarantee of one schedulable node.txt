@@ -1,0 +1,24 @@
+9 GUARANTE THAT THERE IS ONE SCHEDUALBLE NODE
+
+==== [2021-04-06 11:31:44] Executing the user defined algorithm starts... ====
+JupyterHub policy
+Current status:
+from MiCADO, active JHUB nodes: 1
+from MiCADO, required JHUB nodes: 2
+from MiCADO, time since required JHUB node count changed: 0
+from Prometheus, schedulable  nodes: 1.0
+from Prometheus, unschedulable  nodes: 1.0
+Checking if policy can be applied...
+Applying...
+Collecting JHUB nodes and pods information...
+Schedulable nodes:
+{'notebook-node-172-31-42-38': 0}
+least utilised schedulable node: notebook-node-172-31-42-38
+pods: 0
+Unschedulable nodes:
+{'notebook-node-172-31-43-196': 1}
+most utilised unschedulable node: notebook-node-172-31-43-196
+pods: 1
+No active alerts on Prometheus
+No empty nodes
+==== [2021-04-06 11:31:44] Executing the user defined algorithm finished. ====
