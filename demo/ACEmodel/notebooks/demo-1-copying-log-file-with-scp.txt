@@ -1,0 +1,8 @@
+(ace) jovyan@jupyter-u1:~/u1$ scp model@ace:ace.log ace.log
+model@ace's password:
+ace.log                                                                                  100%  311KB  14.8MB/s   00:00
+(ace) jovyan@jupyter-u1:~/u1$
+(ace) jovyan@jupyter-u1:~/u1$ scp model@ace:init.log init.log
+model@ace's password:
+init.log                                                                                 100%  259KB  13.8MB/s   00:00
+(ace) jovyan@jupyter-u1:~/u1$
