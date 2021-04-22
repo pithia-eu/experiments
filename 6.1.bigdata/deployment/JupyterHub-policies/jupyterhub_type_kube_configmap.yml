@@ -1,0 +1,187 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+imports:
+- https://raw.githubusercontent.com/micado-scale/tosca/develop/micado_types.yaml
+repositories:
+  docker_hub: https://hub.docker.com/
+description: 'JupyterHub'
+topology_template:
+  node_templates:
+    #JupyterHub configuration file
+    jupyterhub-configmap:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: jupyterhub
+                labels:
+                  app.kubernetes.io/name: jupyterhub
+                  app.kubernetes.io/instance: jupyterhub
+              data:
+                #Change if only you know what you are doing
+                jupyterhub.py: "import os\n
+                                # Generic\n
+                                c.JupyterHub.admin_access = True\n
+                                c.Spawner.default_url = '/lab'\n
+                                c.JupyterHub.spawner_class = os.environ['SPAWNER_CLASS']\n
+                                #c.DockerSpawner.image = os.environ['DOCKER_JUPYTER_IMAGE']\n
+                                #c.DockerSpawner.network_name = os.environ['DOCKER_NETWORK_NAME']\n
+                                c.JupyterHub.hub_ip = os.environ['HUB_IP']\n
+                                c.KubeSpawner.hub_connect_ip = os.environ['K8S_HUB_API_IP']\n
+                                #c.KubeSpawner.default_url = '/notebooks/{username}/lab'\n
+                                nfs_server = os.environ.get('NFS_SERVER')\n
+                                nfs_path = os.environ.get('NFS_PATH')\n
+                                c.KubeSpawner.volumes = [\n
+                                    {\n
+                                        'name': 'home',\n
+                                        'nfs': {\n
+                                            'server': nfs_server,\n
+                                            'path': nfs_path\n
+                                        }\n
+                                    }\n
+                                ]\n
+                                c.KubeSpawner.volume_mounts = [\n
+                                    {\n
+                                        'name': 'home',\n
+                                        'mountPath': '/home/jovyan'\n
+                                     }\n
+                                ]\n
+                                # Start Notebook in user directory\n
+                                c.KubeSpawner.notebook_dir = '/home/jovyan/{username}'\n
+                                c.KubeSpawner.working_dir = '/home/jovyan/{username}'\n
+                                #c.KubeSpawner.default_url = '/tree/home/{username}/lab'\n
+                                #notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR') or '/home/jovyan'\n
+                                #c.DockerSpawner.notebook_dir = notebook_dir\n
+                                #c.DockerSpawner.volumes = { 'jupyterhub-user-{username}': notebook_dir }\n
+                                #c.Spawner.cpu_limit = 1\n
+                                #c.Spawner.mem_limit = '2G'\n
+                                c.KubeSpawner.node_selector = {'micado.eu/node_type':'jupyter-node'}\n
+                                c.DummyAuthenticator.password = 'password'\n"
+    jupyterhub-service:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: v1
+              kind: Service
+              metadata:
+                labels:
+                  app.kubernetes.io/name: jupyterhub
+                name: jupyterhub
+                namespace: default
+              spec:
+                clusterIP: None
+                ports:
+                  - name: jhub
+                    port: 8000
+                    targetPort: jhub
+                selector:
+                  app.kubernetes.io/name: jupyterhub
+    #JupyterHub deployment
+    jupyterhub-deployment:
+      type: tosca.nodes.MiCADO.Kubernetes
+      interfaces:
+        Kubernetes:
+          create:
+            inputs:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: jupyterhub
+                labels:
+                  app.kubernetes.io/name: jupyterhub
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app.kubernetes.io/name: jupyterhub
+                    app.kubernetes.io/instance: jupyterhub
+                template:
+                  metadata:
+                    labels:
+                      app.kubernetes.io/name: jupyterhub
+                      app.kubernetes.io/instance: jupyterhub
+                  spec:
+                    containers:
+                    - name: jupyterhub
+                      image: jupyterhub/jupyterhub:1.2
+                      imagePullPolicy: IfNotPresent
+                      ports:
+                      - containerPort: 8000
+                        name: jhub
+                      - containerPort: 8081
+                        name: jhub2
+                      volumeMounts:
+                      - name: configmap
+                        mountPath: /jupyterhub/config
+                      lifecycle:
+                        postStart:
+                          exec:
+                            command: [ "/bin/sh", "-c", "apt update && apt install sudo && sudo cp /jupyterhub/config/jupyterhub.py jupyterhub.py && pip install jupyterhub-kubespawner" ]
+                            #apt-get update && apt-get install vim && pip install jupyterhub-kubespawner
+                    volumes:
+                      - name: configmap
+                        configMap:
+                          name: jupyterhub
+    jupyterhub-node:
+      type: tosca.nodes.MiCADO.EC2.Compute
+      properties:
+        region_name: eu-west-2 #ADD_YOUR_REGION_NAME
+        image_id: ami-09a1e275e350acf38 #ADD_YOUR_IMAGE_ID
+        instance_type: t2.medium #ADD_YOUR_IMAGE_ID
+        key_name: Dimitris-key #ADD_YOUR_KEY_NAME
+        #Allow all traffic to Jupyterhub
+        security_group_ids:
+          - sg-075395b33ac05ee99 #ADD_YOUR_SECURITY_GROUP_ID
+      interfaces:
+        Occopus:
+          create:
+            inputs:
+              endpoint: https://ec2.eu-west-2.amazonaws.com
+    notebook-node:
+      type: tosca.nodes.MiCADO.EC2.Compute
+      properties:
+        region_name: eu-west-2
+        image_id: ami-09a1e275e350acf38
+        instance_type: t2.medium
+        key_name: Dimitris-key
+        security_group_ids:
+          - sg-075395b33ac05ee99
+      interfaces:
+        Occopus:
+          create:
+            inputs:
+              endpoint: https://ec2.eu-west-2.amazonaws.com
+
+policy_types:
+  tosca.policies.Scaling.MiCADO.VirtualMachine.CPU.jupyterhub:
+    derived_from: tosca.policies.Scaling.MiCADO
+    description: base MiCADO policy defining data sources, constants, queries, alerts, limits and rules
+    properties:
+      alerts:
+        type: list
+        description: pre-define alerts for VM CPU
+        default:
+        - alert: node_overloaded
+          expr: '(100-(avg(rate(node_cpu_seconds_total{node="{{ NODE_NAME }}", mode="idle"}[60s]))*100)) > {{NODE_TH_MAX}}'
+          for: 1m
+        - alert: node_underloaded
+          expr: '(100-(avg(rate(node_cpu_seconds_total{node="{{ NODE_NAME }}", mode="idle"}[60s]))*100)) < {{NODE_TH_MIN}}'
+          for: 1m
+        required: true
+      scaling_rule:
+        type: string
+        description: pre-define scaling rule for VM CPU
+        default: |
+          if len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60:
+            if node_overloaded:
+              m_node_count+=1
+            if node_underloaded:
+              m_node_count-=1
+          else:
+            print('Transient phase, skipping update of nodes...')
+        required: true

@@ -1,0 +1,77 @@
+[TWELVE USERS IN THREE NODES]
+
+==== [2021-04-06 10:57:28] Executing the user defined algorithm starts... ====
+JupyterHub policy
+Current status:
+from MiCADO, active JHUB nodes: 3
+from MiCADO, required JHUB nodes: 3
+from MiCADO, time since required JHUB node count changed: 727
+from Prometheus, schedulable  nodes: 3.0
+from Prometheus, unschedulable  nodes: 0.0
+Checking if policy can be applied...
+Applying...
+Collecting JHUB nodes and pods information...
+Schedulable nodes:
+{'notebook-node-172-31-37-42': 4, 'notebook-node-172-31-42-38': 5, 'notebook-node-172-31-43-196': 3}
+least utilised schedulable node: notebook-node-172-31-43-196
+pods: 3
+Unschedulable nodes:
+{}
+No active alerts on Prometheus
+No empty nodes
+==== [2021-04-06 10:57:29] Executing the user defined algorithm finished. ====
+
+
+
+
+[CAPTURING PROMETHEUS UNDERLOADED ALERT AND MAKING THE LEAST UTILISED NODE NODE USCHEDULABLE]
+
+==== [2021-04-06 10:57:44] Executing the user defined algorithm starts... ====
+JupyterHub policy
+Current status:
+from MiCADO, active JHUB nodes: 3
+from MiCADO, required JHUB nodes: 3
+from MiCADO, time since required JHUB node count changed: 743
+from Prometheus, schedulable  nodes: 3.0
+from Prometheus, unschedulable  nodes: 0.0
+Checking if policy can be applied...
+Applying...
+Collecting JHUB nodes and pods information...
+Schedulable nodes:
+{'notebook-node-172-31-37-42': 4, 'notebook-node-172-31-42-38': 5, 'notebook-node-172-31-43-196': 3}
+least utilised schedulable node: notebook-node-172-31-43-196
+pods: 3
+Unschedulable nodes:
+{}
+JupyterHub is underloaded
+Making unschedulable the leas utilised node: notebook-node-172-31-43-196
+No empty nodes
+==== [2021-04-06 10:57:44] Executing the user defined algorithm finished. ====
+
+
+
+
+[THREE NODES - ONE UNSCHEDULABLE WITH THREE USERS ON IT]
+
+==== [2021-04-06 10:58:44] Executing the user defined algorithm starts... ====
+JupyterHub policy
+Current status:
+from MiCADO, active JHUB nodes: 2
+from MiCADO, required JHUB nodes: 3
+from MiCADO, time since required JHUB node count changed: 0
+from Prometheus, schedulable  nodes: 2.0
+from Prometheus, unschedulable  nodes: 1.0
+Checking if policy can be applied...
+Applying...
+Collecting JHUB nodes and pods information...
+Schedulable nodes:
+{'notebook-node-172-31-37-42': 4, 'notebook-node-172-31-42-38': 5}
+least utilised schedulable node: notebook-node-172-31-37-42
+pods: 4
+Unschedulable nodes:
+{'notebook-node-172-31-43-196': 3}
+most utilised unschedulable node: notebook-node-172-31-43-196
+pods: 3
+No active alerts on Prometheus
+No empty nodes
+==== [2021-04-06 10:58:44] Executing the user defined algorithm finished. ====
