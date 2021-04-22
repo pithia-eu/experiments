@@ -244,7 +244,7 @@ topology_template:
                   targetPort: telemetry
                 selector:
                   app.kubernetes.io/name: kube-state-metrics
-    # JUPYTER HUB
+    # -------JUPYTER HUB-------
     # JupyterHub Deployment
     jupyterhub:
       type: tosca.nodes.MiCADO.Container.Application.Docker.Deployment
@@ -296,7 +296,7 @@ topology_template:
           create:
             inputs:
               endpoint: https://ec2.eu-west-2.amazonaws.com  #ADD_YOUR_ENDPOINT
-    # JupyterHub DataPoint
+    # JupyterHub NFS DataPoint
     nfs-volume:
       type: tosca.nodes.MiCADO.Container.Volume.NFS
       properties:
@@ -323,7 +323,7 @@ topology_template:
           create:
             inputs:
               endpoint: https://ec2.eu-west-2.amazonaws.com #ADD_YOUR_ENDPOINT
-    # ACE MODEL
+    # -------ACE MODEL-------
     # ACE Model Service
     ace-service:
       type: tosca.nodes.MiCADO.Kubernetes
@@ -385,6 +385,7 @@ topology_template:
                                 - /home/model/init.sh
                         ports:
                           - containerPort: 22
+    #-------MYSQL Server-------
     # MYSQL script in Config Map
     mysql-configmap:
       type: tosca.nodes.MiCADO.Kubernetes

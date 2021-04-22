@@ -4,5 +4,6 @@
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/ACEmodel/k8s/k8s2adt" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/components/ace/k8s/k8s2adt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/stim/ACEmodel/k8s/k8s2adt" vcs="Git" />
   </component>
 </project>

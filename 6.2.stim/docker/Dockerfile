@@ -5,8 +5,8 @@ RUN mkdir /home/model
 WORKDIR /home/model
 
 # Copy scripts
-COPY ./init.sh /home/model/init.sh
-COPY ./ace.sh /home/model/ace.sh
+COPY init.sh /home/model/init.sh
+COPY ace.sh /home/model/ace.sh
 
 # Change permissions
 RUN chmod 755 /home/model/init.sh
@@ -28,7 +28,7 @@ RUN adduser -D -h /home/model -s /bin/sh -g root -G root -u 1000 model
 RUN echo 'model:model' | chpasswd
 
 #Configure model env
-ADD ./ACE/ /home/model/ACE/
+ADD ACE /home/model/ACE/
 RUN conda env create -f ./ACE/var/data/environment.yml
 RUN apk add bash
 RUN conda init bash
