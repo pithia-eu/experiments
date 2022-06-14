@@ -40,6 +40,7 @@ RUN apk add curl
 ADD API /home/model/API/
 RUN pip install fastapi==0.78.0
 RUN pip install uvicorn==0.17.6
+RUN pip install pandas==1.4.2
 
 EXPOSE 22
 EXPOSE 8080

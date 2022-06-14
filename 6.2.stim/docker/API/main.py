@@ -141,6 +141,7 @@ async def query_data(parameter: str = Query("recentStorms",
     df.to_csv(stream, index=False)
     response = StreamingResponse(io.StringIO(df.to_csv(index=False)), media_type="text/csv")
     response.headers["Content-Disposition"] = f"attachment; filename={file_name}.csv"
+    return response
 
 
 @app.get("/plot", tags=["plot"])
