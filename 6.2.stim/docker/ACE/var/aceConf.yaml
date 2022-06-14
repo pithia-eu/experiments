@@ -5,8 +5,10 @@ Description: ACE Ionospheric Model
 Version: 0.1
 
 DATA_PATH: &DATA_PATH ./var/data/
+PLOT_PATH: !join [*DATA_PATH, 'plots']
+RUN_PATH: './ace.run'
 
-BASE_DATE: 2018-01-01T00:00:00
+BASE_DATE: 2016-01-01T00:00:00
 NODATA_ACE_THRESH: 45m
 
 Providers:

@@ -11,6 +11,7 @@ then
         date >> /home/model/init.log;
         source $CONDA_PREFIX/etc/profile.d/conda.sh
         conda activate ace
+        pip install pandas
         cd /home/model/ACE/bin
         python oper.py db -c >> /home/model/init.log;
         python oper.py db -i >> /home/model/init.log;

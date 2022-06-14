@@ -34,5 +34,12 @@ RUN apk add bash
 RUN conda init bash
 RUN apk add mysql-client
 RUN apk add sudo
+RUN apk add curl
+
+#Configure rest env
+ADD API /home/model/API/
+RUN pip install fastapi==0.78.0
+RUN pip install uvicorn==0.17.6
 
 EXPOSE 22
+EXPOSE 8080

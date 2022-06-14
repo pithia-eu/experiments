@@ -32,6 +32,8 @@ def normpath(extpath, basepath = _F):
 
 def _fixConf():
     CONF['DATA_PATH'] = normpath(CONF['DATA_PATH'], _F)
+    CONF['PLOT_PATH'] = normpath(CONF['PLOT_PATH'], _F)
+    CONF['RUN_PATH'] = normpath(CONF['RUN_PATH'], _F)
     CONF['MYSQLDB']['FUNC_PATH'] = normpath(CONF['MYSQLDB']['FUNC_PATH'], _F)
     if CONF['BASE_DATE']:
         if not isinstance(CONF['BASE_DATE'], datetime):
