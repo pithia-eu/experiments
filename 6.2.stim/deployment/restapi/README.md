@@ -5,7 +5,7 @@ Instructions for manual deployment in docker engine
 ## Create the containers
 1. Install docker engine
 2. Create a mysql container, command: docker-compose up -d
-3. Create the stim container, command: docker run --rm -d -p 8080:8080 --add-host=host.docker.internal:host-gateway --name my_stim dkagialis/stim-rest
+3. Create the stim container, command: docker run --rm -d -p 8080:8080 --add-host=host.docker.internal:host-gateway --name my_stim dkagialis/stim-rest:0.0.1
 
 ## Configure mysql
 1. Find the id of the container with docker ps
