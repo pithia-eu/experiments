@@ -96,6 +96,7 @@ async def execute(alt: int = model.alt,
         # command([f'./dtm alt={alt} day = '])
         print(command_string)
         results = []
+        files = os.listdir()
         for file in files:
             if file.endswith('.datx'):
                 results.append(file)
