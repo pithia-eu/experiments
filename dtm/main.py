@@ -92,7 +92,7 @@ async def execute(alt: int = model.alt,
         for file in files:
             if file.endswith('.datx'):
                 os.remove(file)
-        command_string = f'./dtmv2 alt={alt} day ={day} xlon={xlon} fm={fm} fl={fl} akp={akp}'
+        command_string = f'./dtmv2 < {alt} {day} {xlon} 0,1{fm} 2,3{fl} {akp}'
         # command([f'./dtm alt={alt} day = '])
         print(command_string)
         results = []
