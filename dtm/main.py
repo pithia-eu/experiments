@@ -72,7 +72,9 @@ async def execute(alt: int = model.alt,
     try:
         Model(alt=alt,day=day,xlon=xlon,fm=fm,fl=fl,akp=akp)
     except Exception as e:
-        return e.__str__().replace('\n',' ')
+        r = e.__str__().replace('\n',' ')
+        r = r.replace('Model', 'parameter:')
+        return r
     os.chdir('/home/ubuntu/experiments/dtm')
     os.chdir('runs')
     folder_created = False
