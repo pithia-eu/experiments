@@ -134,7 +134,7 @@ async def execute(alt: int = model.alt,
     for file in files:
         if file.endswith('.datx'):
             results.append(file)
-    return {'execution_id':id},{'result_files':results}
+    return {'execution_id':id},{'parameters':{'alt':alt,'day':day,'xlon':xlon,'fm':fm,'fl':fl,'akp':akp}},{'result_files':results}
 
 
 @app.get("/plot", tags=["plot"])
