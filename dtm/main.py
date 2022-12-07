@@ -126,13 +126,15 @@ async def execute(alt: int = model.alt,
     command_string = f'./Model_DTM2020F107Kp_forAPI < input'
     print(command_string)
     print(f'input: {input_file_string}')
-    command(['./Model_DTM2020F107Kp_forAPI','<', 'input'])
+    # command(['./Model_DTM2020F107Kp_forAPI','<', 'input'])
+    os.system('./Model_DTM2020F107Kp_forAPI < input')
     results = []
+
     files = os.listdir()
     for file in files:
         if file.endswith('.datx'):
             results.append(file)
-    return id,results
+    return {'execution_id':id},{'result_files':results}
 
 
 @app.get("/plot", tags=["plot"])
