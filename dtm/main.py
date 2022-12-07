@@ -80,7 +80,8 @@ async def execute(alt: int = model.alt,
             os.mkdir(f'runs/{str(id)}')
             print(f'folder {id} created')
             folder_created = True
-        except:
+        except Exception as e:
+            print(e)
             print(f'folder {id} exist')
     files_to_copy = ['Model_DTM2020F107Kp_forAPI', 'DTM_2020_F107_Kp']
     files = os.listdir()
