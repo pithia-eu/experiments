@@ -75,8 +75,8 @@ async def execute(alt: int = model.alt,
         return e.__str__().replace('/n',' ')
     folder_created = False
     while not folder_created:
+        id = randint(1000000000, 9999999999)
         try:
-            id = randint(1000000000, 9999999999)
             os.mkdir(f'runs/{str(id)}')
             print(f'folder {id} created')
             folder_created = True
