@@ -114,7 +114,7 @@ async def execute(alt: int = model.alt,
     for file in files_to_copy:
         shutil.copy(file, f'runs/{id}/{file}')
     os.chdir(f'runs/{id}')
-    input_file_string = f'{alt} {day} {xlon} {fm} {fl} {akp}'
+    input_file_string = f'{alt},{day},{xlon},{fm},{fl},{akp}'
     f = open("input", "a")
     f.write(input_file_string)
     f.close()
