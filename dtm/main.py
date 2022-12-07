@@ -102,7 +102,7 @@ async def execute(alt: int = model.alt,
         except:
             print(f'folder {id} exist')
     files_to_copy = []
-    files_to_copy.append('Model_DTM2020F107Kp')
+    files_to_copy.append('Model_DTM2020F107Kp_forAPI')
     files_to_copy.append('DTM_2020_F107_Kp')
     files = os.listdir()
     for file in files:
@@ -114,9 +114,14 @@ async def execute(alt: int = model.alt,
     for file in files_to_copy:
         shutil.copy(file, f'runs/{id}/{file}')
     os.chdir(f'runs/{id}')
-    command_string = f'./Model_DTM2020F107Kp < {alt} {day} {xlon} 0,1{fm} 2,3{fl} {akp}'
+    input_file_string = f'{alt} {day} {xlon} {fm} {fl} {akp}'
+    f = open("input", "a")
+    f.write(input_file_string)
+    f.close()
+    command_string = f'./Model_DTM2020F107Kp_forAPI < input'
     print(command_string)
-    command([f'./Model_DTM2020F107Kp'])
+    print(f'input: {input_file_string}')
+    command(['./Model_DTM2020F107Kp_forAPI','<','input'])
     results = []
     files = os.listdir()
     for file in files:
