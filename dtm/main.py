@@ -73,11 +73,12 @@ async def execute(alt: int = model.alt,
         Model(alt=alt,day=day,xlon=xlon,fm=fm,fl=fl,akp=akp)
     except Exception as e:
         return e.__str__().replace('/n',' ')
+    os.chdir('runs')
     folder_created = False
     while not folder_created:
         id = randint(1000000000, 9999999999)
         try:
-            os.mkdir(f'runs/{str(id)}')
+            os.mkdir(f'{str(id)}')
             print(f'folder {id} created')
             folder_created = True
         except Exception as e:
@@ -92,8 +93,8 @@ async def execute(alt: int = model.alt,
             files_to_copy.append(file)
     print(files_to_copy)
     for file in files_to_copy:
-        shutil.copy(file, f'runs/{id}/{file}')
-    os.chdir(f'runs/{id}')
+        shutil.copy(file, f'{id}/{file}')
+    os.chdir(f'{id}')
     input_file_string = f'{fm},{fl},{alt},{day},{xlon},{akp}'
     f = open("input", "a")
     f.write(input_file_string)
