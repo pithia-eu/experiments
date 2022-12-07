@@ -1,52 +1,26 @@
 import os
-import subprocess
+import shutil
 import io
 import datetime
 import pandas
-from os.path import exists
+from random import randint
+from pydantic import BaseModel, Field
 from fastapi import FastAPI, Query, Body
 from fastapi.responses import StreamingResponse, FileResponse
-from random import randint
-import shutil
-
-from pydantic import BaseModel, Field
-
-
-
-def command(args_list):
-    print('proc1')
-    print('args_list',args_list)
-    proc = subprocess.Popen(args_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print('proc2')
-    s_output, s_err = proc.communicate()
-    print('proc3')
-    s_return = proc.returncode
-    print('proc4')
-    return s_return, s_output, s_err
-
-
-def execute_stim():
-    model_runs = exists('../ace.runs')
-    if model_runs:
-        return False
-    else:
-        command(['bash', '../ace.sh'])
-        return True
-
 
 description = """
 The DTM model ... 
 
 ## Services
 
-The model offers ..**.
+The model offers ...
 
 ## Functionalities
 
 The API offers:
 
-* **Execute the model with parameters..**.
-* **Plot data..**.
+* Execute the model with parameters ** to do**.
+* Plot data..** to do **.
 """
 
 tags_metadata = [
@@ -85,7 +59,9 @@ class Model(BaseModel):
     fl: int = Field(default=100, title="Daily F10.7 flux of previous day", ge=60, le=300)  # Daily F10.7 flux of previous day
     akp: int = Field(default=0, title="Geomagnetic activity index kp", ge=0, le=9)  # Geomagnetic activity index kp
 
+
 model = Model()
+
 @app.get("/execute", tags=["execute"])
 async def execute(alt: int = model.alt,
                       day: int = model.day,
@@ -96,7 +72,7 @@ async def execute(alt: int = model.alt,
     try:
         Model(alt=alt,day=day,xlon=xlon,fm=fm,fl=fl,akp=akp)
     except Exception as e:
-        return e.__str__()
+        return e.__str__().replace('/n',' ')
     folder_created = False
     while not folder_created:
         try:
@@ -106,9 +82,7 @@ async def execute(alt: int = model.alt,
             folder_created = True
         except:
             print(f'folder {id} exist')
-    files_to_copy = []
-    files_to_copy.append('Model_DTM2020F107Kp_forAPI')
-    files_to_copy.append('DTM_2020_F107_Kp')
+    files_to_copy = ['Model_DTM2020F107Kp_forAPI', 'DTM_2020_F107_Kp']
     files = os.listdir()
     for file in files:
         if file.endswith('.datx'):
@@ -126,7 +100,6 @@ async def execute(alt: int = model.alt,
     command_string = f'./Model_DTM2020F107Kp_forAPI < input'
     print(command_string)
     print(f'input: {input_file_string}')
-    # command(['./Model_DTM2020F107Kp_forAPI','<', 'input'])
     os.system('./Model_DTM2020F107Kp_forAPI < input')
     results = []
 
@@ -134,9 +107,11 @@ async def execute(alt: int = model.alt,
     for file in files:
         if file.endswith('.datx'):
             results.append(file)
-    return {'execution_id':id},{'parameters':{'alt':alt,'day':day,'xlon':xlon,'fm':fm,'fl':fl,'akp':akp}},{'result_files':results}
+    return {'execution_id':id},\
+           {'parameters':{'alt':alt,'day':day,'xlon':xlon,'fm':fm,'fl':fl,'akp':akp}},\
+           {'result_files':results}
 
 
 @app.get("/plot", tags=["plot"])
 async def plot_dtm(execution_id: int):
-    return(f'plot for id {execution_id}')
+    return f'plot for id {execution_id}'
