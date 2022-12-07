@@ -6,6 +6,8 @@ import pandas
 from os.path import exists
 from fastapi import FastAPI, Query, Body
 from fastapi.responses import StreamingResponse, FileResponse
+from random import randint
+import shutil
 
 from pydantic import BaseModel, Field
 
@@ -88,22 +90,39 @@ async def execute(alt: int = model.alt,
                       akp:int = model.akp):
     try:
         Model(alt=alt,day=day,xlon=xlon,fm=fm,fl=fl,akp=akp)
-        files = os.listdir()
-        for file in files:
-            if file.endswith('.datx'):
-                os.remove(file)
-        command_string = f'./dtmv2 < {alt} {day} {xlon} 0,1{fm} 2,3{fl} {akp}'
-        # command([f'./dtm alt={alt} day = '])
-        print(command_string)
-        results = []
-        files = os.listdir()
-        for file in files:
-            if file.endswith('.datx'):
-                results.append(file)
-        return results
     except Exception as e:
-        print(e)
         return e.__str__()
+    folder_created = False
+    while not folder_created:
+        try:
+            id = randint(1000000000, 9999999999)
+            os.mkdir(f'runs/{str(id)}')
+            print(f'folder {id} created')
+            folder_created = True
+        except:
+            print(f'folder {id} exist')
+    files_to_copy = []
+    files_to_copy.append('Model_DTM2020F107Kp')
+    files = os.listdir()
+    for file in files:
+        if file.endswith('.datx'):
+            os.remove(file)
+        if file.endswith('.dat'):
+            files_to_copy.append(file)
+    print(files_to_copy)
+    for file in files_to_copy:
+        shutil.copy(file, f'runs/{id}/{file}')
+    os.chdir(f'runs/{id}')
+    command_string = f'./Model_DTM2020F107Kp < {alt} {day} {xlon} 0,1{fm} 2,3{fl} {akp}'
+    print(command_string)
+    command([f'./Model_DTM2020F107Kp'])
+    results = []
+    files = os.listdir()
+    for file in files:
+        if file.endswith('.datx'):
+            results.append(file)
+    return id,results
+
 
 @app.get("/plot", tags=["plot"])
 async def plot_dtm():
