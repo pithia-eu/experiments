@@ -103,6 +103,7 @@ async def execute(alt: int = model.alt,
             print(f'folder {id} exist')
     files_to_copy = []
     files_to_copy.append('Model_DTM2020F107Kp')
+    files_to_copy.append('DTM_2020_F107_Kp')
     files = os.listdir()
     for file in files:
         if file.endswith('.datx'):
