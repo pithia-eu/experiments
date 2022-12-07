@@ -14,9 +14,14 @@ from pydantic import BaseModel, Field
 
 
 def command(args_list):
+    print('proc1')
+    print('args_list',args_list)
     proc = subprocess.Popen(args_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    print('proc2')
     s_output, s_err = proc.communicate()
+    print('proc3')
     s_return = proc.returncode
+    print('proc4')
     return s_return, s_output, s_err
 
 
