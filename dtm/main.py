@@ -138,5 +138,5 @@ async def execute(alt: int = model.alt,
 
 
 @app.get("/plot", tags=["plot"])
-async def plot_dtm():
-    return('plot')
+async def plot_dtm(execution_id: int):
+    return(f'plot for id {execution_id}')
