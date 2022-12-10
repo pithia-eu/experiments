@@ -8,7 +8,7 @@ from zipfile import ZipFile
 from random import randint
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, Query, Body
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, Response
 
 description = """
 The Drag Temperature Model is the in-house developed semi-empirical model of the thermosphere. Its main application is in orbit determination and prediction. It provides point-wise predictions of total mass density, temperature, and partial densities of the main constituents (O2, N2, O, He). The solar driver is F10.7 and the geomagnetic driver of the model is Kp. The backbone of the data used to fit the model coefficients are the high-resolution and precision accelerometer-inferred densities of the GOCE, CHAMP and GRACE missions. The DTM2020 model is available on Github (F90 code).
@@ -116,10 +116,10 @@ async def download_results(execution_id: int):
         files = os.listdir()
         if 'results.zip' in files:
             zip_io = io.BytesIO()
-            response = StreamingResponse(
-                zip_io.getvalue(),
-                media_type="application/x-zip-compressed",
-                headers={"Content-Disposition": f"attachment; filename=results.zip"})
+            response = Response(zip_io.getvalue(), media_type="application/x-zip-compressed", headers={
+                'Content-Disposition': f'attachment;filename=results.zip'
+            })
+            return response
             return response
         files_to_zip =['input']
         for file in files:
@@ -130,10 +130,9 @@ async def download_results(execution_id: int):
             zip_obj.write(f'{file}')
         zip_obj.close()
         zip_io = io.BytesIO()
-        response = StreamingResponse(
-            zip_io.getvalue(),
-            media_type="application/x-zip-compressed",
-            headers={"Content-Disposition": f"attachment; filename=results.zip"})
+        response = Response(zip_io.getvalue(), media_type="application/x-zip-compressed", headers={
+            'Content-Disposition': f'attachment;filename=results.zip'
+        })
         return response
 
     except Exception as e:
