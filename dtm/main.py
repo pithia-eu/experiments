@@ -3,6 +3,7 @@ import shutil
 import io
 import datetime
 import pandas
+from zipfile import ZipFile
 from random import randint
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, Query, Body
@@ -106,3 +107,22 @@ async def execute(fm: int = model.fm,
 @app.get("/plot", tags=["plot"])
 async def plot_dtm(execution_id: int):
     return f'plot for id {execution_id}'
+
+@app.get("/download", tags=["download"])
+async def plot_dtm(execution_id: int):
+    try:
+        os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
+        files = os.listdir()
+        if 'results.zip' in files:
+            return 'results.zip 1'
+        files_to_zip =['input']
+        for file in files:
+            if file.endswith('.datx'):
+                files_to_zip.append(file)
+        zip_obj = ZipFile('results.zip', 'w')
+        for file in files_to_zip:
+            zip_obj.write(f'{file}')
+        zip_obj.close()
+        return 'results.zip 2'
+    except Exception as e:
+        return f'Cannot find a past execution with id: {execution_id}'
