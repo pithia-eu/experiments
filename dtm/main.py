@@ -2,10 +2,11 @@ import os
 import shutil
 import io
 import zipfile
+import matplotlib.pyplot as plt
 from random import randint
 from pydantic import BaseModel, Field
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, Query
+from fastapi.responses import StreamingResponse, FileResponse
 
 description = """
 The Drag Temperature Model is the in-house developed semi-empirical model of the thermosphere. Its main application is in orbit determination and prediction. It provides point-wise predictions of total mass density, temperature, and partial densities of the main constituents (O2, N2, O, He). The solar driver is F10.7 and the geomagnetic driver of the model is Kp. The backbone of the data used to fit the model coefficients are the high-resolution and precision accelerometer-inferred densities of the GOCE, CHAMP and GRACE missions. The DTM2020 model is available on Github (F90 code).
@@ -103,8 +104,23 @@ async def execute(fm: int = model.fm,
 
 
 @app.get("/plot", tags=["plot"])
-async def plot_results(execution_id: int):
-    return f'plot for id {execution_id}'
+async def plot_results(execution_id: int,
+                       data: str = Query(enum=['He',
+                                               'N2',
+                                               'O',
+                                               'ro'
+,                                              'Tinf',
+                                               'Tz'])):
+    try:
+        # os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
+        fig = plt.figure(figsize=[8,8])
+
+        plt.plot([1, 2, 3, 4])
+        plt.ylabel('some numbers')
+        fig.savefig('test.png')
+        return FileResponse('test.png')
+    except Exception as e:
+        return e.__str__
 
 @app.get("/download", tags=["download"])
 async def download_results(execution_id: int):
