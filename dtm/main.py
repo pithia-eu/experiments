@@ -2,7 +2,7 @@ import os
 import shutil
 import io
 import datetime
-import panda
+import pandas
 from zipfile import ZipFile
 
 from random import randint
