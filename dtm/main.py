@@ -9,68 +9,62 @@ from fastapi import FastAPI, Query, Body
 from fastapi.responses import StreamingResponse, FileResponse
 
 description = """
-The DTM model ... 
+The Drag Temperature Model is the in-house developed semi-empirical model of the thermosphere. Its main application is in orbit determination and prediction. It provides point-wise predictions of total mass density, temperature, and partial densities of the main constituents (O2, N2, O, He). The solar driver is F10.7 and the geomagnetic driver of the model is Kp. The backbone of the data used to fit the model coefficients are the high-resolution and precision accelerometer-inferred densities of the GOCE, CHAMP and GRACE missions. The DTM2020 model is available on Github (F90 code).
 
-## Services
-
-The model offers ...
-
-## Functionalities
-
-The API offers:
-
-* Execute the model with parameters ** to do**.
-* Plot data..** to do **.
+## Functionalities:
+* Execute the model.
+* Plot results.
+* Download results.
 """
 
 tags_metadata = [
     {
         "name": "execute",
-        "description": "Initiate a model execution...",
+        "description": "Initiate a model execution by specifying the following parameters:<br>"
+                       "fm: Mean F10.7 flux of last 81 day, ge=60, le=250<br>"
+                       "fl: Daily F10.7 flux of previous day, ge=60, le=300<br>"
+                       "atl: Altitude, ge=120, le=1500<br>"
+                       "day: Day of the year, ge=1, le=366<br>"
+                       "akp1: Geomagnetic activity index kp delayed by 3 hours, ge=0, le=9<br>"
+                       "akp3: Mean geomagnetic activity index kp of the last 24 hours, ge=0, le=9<br>",
     },
     {
         "name": "plot",
-        "description": "Plot ..",
+        "description": "Create a plot of the selected file by passing an execution id",
+    },
+    {
+        "name": "download",
+        "description": "Download all output files by passing an execution id",
     },
 ]
 
-app = FastAPI(title='DTM RestAPI',
+app = FastAPI(title='DTM2020-operational: semi-empirical thermosphere model',
               description=description,
-              version="0.0.1",
-              terms_of_service="https://pithia-nrf.eu/",
-              contact={
-                  "name": "CNES",
-                  "url": "https://cnes.fr/en",
-                  "email": "sean.bruinsma@cnes.fr",
-              },
-              license_info={
-                  "name": "CNES license",
-                  "url": "https://cnes.fr/en",
-              },
+              version="1.0",
               openapi_tags=tags_metadata
               )
 
 
 class Model(BaseModel):
-    alt: int = Field(default=300, title="Altitude", ge=120, le=1500)  # Altitude
-    day: int = Field(default=180, title="Day of the year", ge=1, le=366)  # Day of year
-    xlon: int = Field(default=0, title="Longitude", ge=0, le=360)  # Longitude, in degrees
     fm: int = Field(default=180, title="Mean F10.7 flux of last 81 day", ge=60, le=250)  # Mean F10.7 flux of last 81 day
     fl: int = Field(default=100, title="Daily F10.7 flux of previous day", ge=60, le=300)  # Daily F10.7 flux of previous day
-    akp: int = Field(default=0, title="Geomagnetic activity index kp", ge=0, le=9)  # Geomagnetic activity index kp
+    alt: int = Field(default=300, title="Altitude", ge=120, le=1500)  # Altitude
+    day: int = Field(default=180, title="Day of the year", ge=1, le=366)  # Day of year
+    akp1: int = Field(default=0, title="Geomagnetic activity index kp delayed by 3 hours", ge=0, le=9)  # Geomagnetic activity index kp
+    akp3: int = Field(default=0, title="Mean geomagnetic activity index kp of the last 24 hours", ge=0, le=9)  # Geomagnetic activity index kp
 
 
 model = Model()
 
 @app.get("/execute", tags=["execute"])
-async def execute(alt: int = model.alt,
-                      day: int = model.day,
-                      xlon: int = model.xlon,
-                      fm: int = model.fm,
-                      fl: int = model.fm,
-                      akp:int = model.akp):
+async def execute(fm: int = model.fm,
+                  fl: int = model.fl,
+                  alt: int = model.alt,
+                  day: int = model.day,
+                  akp1:int = model.akp1,
+                  akp3:int = model.akp3):
     try:
-        Model(alt=alt,day=day,xlon=xlon,fm=fm,fl=fl,akp=akp)
+        Model(fm=fm,fl=fl,alt=alt,day=day,akp1=akp1,akp3=akp3)
     except Exception as e:
         r = e.__str__().replace('\n',' ')
         r = r.replace('Model', 'parameter:')
@@ -88,17 +82,10 @@ async def execute(alt: int = model.alt,
             print(e)
             print(f'folder {id} exist')
     files_to_copy = ['Model_DTM2020F107Kp_forAPI', 'DTM_2020_F107_Kp']
-    files = os.listdir('../')
-    for file in files:
-        if file.endswith('.datx'):
-            os.remove(file)
-        if file.endswith('.dat'):
-            files_to_copy.append(file)
-    print(files_to_copy)
     for file in files_to_copy:
         shutil.copy(f'../{file}', f'{id}/{file}')
     os.chdir(f'{id}')
-    input_file_string = f'{fm},{fl},{alt},{day},{xlon},{akp}'
+    input_file_string = f'{fm},{fl},{alt},{day},{akp1},{akp3}'
     f = open("input", "a")
     f.write(input_file_string)
     f.close()
@@ -111,9 +98,9 @@ async def execute(alt: int = model.alt,
     for file in files:
         if file.endswith('.datx'):
             results.append(file)
-    return {'execution_id':id},\
-           {'parameters':{'alt':alt,'day':day,'xlon':xlon,'fm':fm,'fl':fl,'akp':akp}},\
-           {'result_files':results}
+    return {'execution_id': id},\
+           {'parameters': {'fm':fm,'fl':fl,'alt':alt,'day':day,'akp1':akp1,'akp3':akp3}},\
+           {'result_files': results}
 
 
 @app.get("/plot", tags=["plot"])
