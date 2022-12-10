@@ -1,14 +1,11 @@
 import os
 import shutil
 import io
-import datetime
-import pandas
-from zipfile import ZipFile
-
+import zipfile
 from random import randint
 from pydantic import BaseModel, Field
-from fastapi import FastAPI, Query, Body
-from fastapi.responses import StreamingResponse, FileResponse, Response
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 
 description = """
 The Drag Temperature Model is the in-house developed semi-empirical model of the thermosphere. Its main application is in orbit determination and prediction. It provides point-wise predictions of total mass density, temperature, and partial densities of the main constituents (O2, N2, O, He). The solar driver is F10.7 and the geomagnetic driver of the model is Kp. The backbone of the data used to fit the model coefficients are the high-resolution and precision accelerometer-inferred densities of the GOCE, CHAMP and GRACE missions. The DTM2020 model is available on Github (F90 code).
@@ -112,28 +109,21 @@ async def plot_results(execution_id: int):
 @app.get("/download", tags=["download"])
 async def download_results(execution_id: int):
     try:
+        io_ = io.BytesIO()
         os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
         files = os.listdir()
-        if 'results.zip' in files:
-            zip_io = io.BytesIO()
-            response = Response(zip_io.getvalue(), media_type="application/x-zip-compressed", headers={
-                'Content-Disposition': f'attachment;filename=results.zip'
-            })
-            return response
-            return response
         files_to_zip =['input']
         for file in files:
             if file.endswith('.datx'):
                 files_to_zip.append(file)
-        zip_obj = ZipFile('results.zip', 'w')
-        for file in files_to_zip:
-            zip_obj.write(f'{file}')
-        zip_obj.close()
-        zip_io = io.BytesIO()
-        response = Response(zip_io.getvalue(), media_type="application/x-zip-compressed", headers={
-            'Content-Disposition': f'attachment;filename=results.zip'
-        })
-        return response
-
+        with zipfile.ZipFile(io_, mode='w', compression=zipfile.ZIP_DEFLATED) as zip:
+            for file in files_to_zip:
+                zip.write(file)
+            zip.close()
+        return StreamingResponse(
+            iter([io_.getvalue()]),
+            media_type="application/x-zip-compressed",
+            headers={"Content-Disposition": f"attachment;filename=results.zip"}
+        )
     except Exception as e:
-        return f'Cannot find a past execution with id: {execution_id}'
+        return f'Cannot find execution id: {execution_id}'
