@@ -1,8 +1,11 @@
 import os
 import shutil
 import io
+
+import pandas
 import zipfile
 import matplotlib.pyplot as plt
+import seaborn as sns
 from random import randint
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, Query
@@ -56,6 +59,7 @@ class Model(BaseModel):
 
 model = Model()
 
+
 @app.get("/execute", tags=["execute"])
 async def execute(fm: int = model.fm,
                   fl: int = model.fl,
@@ -69,36 +73,41 @@ async def execute(fm: int = model.fm,
         r = e.__str__().replace('\n',' ')
         r = r.replace('Model', 'parameter:')
         return r
-    os.chdir('/home/ubuntu/experiments/dtm')
-    os.chdir('runs')
+
+    os.chdir('/home/ubuntu/experiments/dtm/runs')
     folder_created = False
     while not folder_created:
-        id = randint(1000000000, 9999999999)
+        id_ = randint(1000000000, 9999999999)
         try:
-            os.mkdir(f'{str(id)}')
-            print(f'folder {id} created')
+            os.mkdir(f'{str(id_)}')
+            print(f'folder {id_} created')
             folder_created = True
         except Exception as e:
             print(e)
-            print(f'folder {id} exist')
+            print(f'folder {id_} exist')
+
     files_to_copy = ['Model_DTM2020F107Kp_forAPI', 'DTM_2020_F107_Kp']
     for file in files_to_copy:
-        shutil.copy(f'../{file}', f'{id}/{file}')
-    os.chdir(f'{id}')
+        shutil.copy(f'../{file}', f'{id_}/{file}')
+
+    os.chdir(f'{id_}')
     input_file_string = f'{fm},{fl},{alt},{day},{akp1},{akp3}'
     f = open("input", "a")
     f.write(input_file_string)
     f.close()
+
     command_string = f'./Model_DTM2020F107Kp_forAPI < input'
     print(command_string)
     print(f'input: {input_file_string}')
     os.system('./Model_DTM2020F107Kp_forAPI < input')
+
     results = []
     files = os.listdir()
     for file in files:
         if file.endswith('.datx'):
             results.append(file)
-    return {'execution_id': id},\
+
+    return {'execution_id': id_},\
            {'parameters': {'fm':fm,'fl':fl,'alt':alt,'day':day,'akp1':akp1,'akp3':akp3}},\
            {'result_files': results}
 
@@ -112,15 +121,16 @@ async def plot_results(execution_id: int,
 ,                                              'Tinf',
                                                'Tz'])):
     try:
-        # os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
+        os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
         fig = plt.figure(figsize=[8,8])
-
-        plt.plot([1, 2, 3, 4])
+        df = pandas.read_csv(f'DTM20F107Kp_{data}.datx', sep='     ', header=None)
+        ax = sns.heatmap( df, linewidth = 0 , cmap = 'Spectral_r')
         plt.ylabel('some numbers')
-        fig.savefig('test.png')
-        return FileResponse('test.png')
+        fig.savefig(f'DTM20F107Kp_{data}.png')
+        return FileResponse(f'DTM20F107Kp_{data}.png')
     except Exception as e:
         return e.__str__
+
 
 @app.get("/download", tags=["download"])
 async def download_results(execution_id: int):
