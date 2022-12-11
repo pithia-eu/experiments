@@ -1,7 +1,7 @@
 import os
 import shutil
 import io
-
+import numpy
 import pandas
 import zipfile
 import matplotlib.pyplot as plt
@@ -132,12 +132,29 @@ async def plot_results(execution_id: int,
                                                'Tz'])):
     try:
         os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
-        fig = plt.figure(figsize=[8,8])
-        df = pandas.read_csv(f'DTM20F107Kp_{data}.datx', sep='     ', header=None)
+        latidute = []
+        counter = 0
+        for i in range(-87,87):
+            if counter == 3:
+                latidute.append(i)
+                counter = 0
+            elif counter == 0:
+                latidute.append(i)
+            counter += 1
+        latidute.append(87)
+
+        df = pandas.read_csv(f'DTM20F107Kp_{data}.datx', sep='     ', header=None, engine='python')
+        lat_array = numpy.array(latidute)
+        df = df.set_index(keys=lat_array)
+
+        fig = plt.figure(figsize=[8, 8])
         ax = sns.heatmap( df, linewidth = 0 , cmap = 'Spectral_r')
-        plt.ylabel('some numbers')
+        plt.ylabel('latitude')
+        plt.xlabel('solar local time')
+        plt.title(f'DTM20F107Kp_{data}.data')
         fig.savefig(f'DTM20F107Kp_{data}.png')
         return FileResponse(f'DTM20F107Kp_{data}.png')
+
     except Exception as e:
         return e.__str__
 
@@ -146,19 +163,19 @@ async def plot_results(execution_id: int,
 async def download_results(execution_id: int):
     try:
         io_ = io.BytesIO()
-        os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
+        # os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
         files = os.listdir()
         files_to_zip =['input']
         for file in files:
             if file.endswith('.datx'):
                 files_to_zip.append(file)
-        with zipfile.ZipFile(io_, mode='w', compression=zipfile.ZIP_DEFLATED) as zip:
+        with zipfile.ZipFile(io_, mode='w') as zip:
             for file in files_to_zip:
                 zip.write(file)
             zip.close()
         return StreamingResponse(
             iter([io_.getvalue()]),
-            media_type="application/x-zip-compressed",
+            media_type="application/zip",
             headers={"Content-Disposition": f"attachment;filename=results.zip"}
         )
     except Exception as e:
