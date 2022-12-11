@@ -160,23 +160,30 @@ async def plot_results(execution_id: int,
 
 
 @app.get("/download", tags=["download"])
-async def download_results(execution_id: int):
+async def download_results(execution_id: int,
+                       data: str = Query(enum=['He',
+                                               'N2',
+                                               'O',
+                                               'ro'
+,                                              'Tinf',
+                                               'Tz'])):
     try:
-        io_ = io.BytesIO()
-        # os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
-        files = os.listdir()
-        files_to_zip =['input']
-        for file in files:
-            if file.endswith('.datx'):
-                files_to_zip.append(file)
-        with zipfile.ZipFile(io_, mode='w') as zip:
-            for file in files_to_zip:
-                zip.write(file)
-            zip.close()
-        return StreamingResponse(
-            iter([io_.getvalue()]),
-            media_type="application/zip",
-            headers={"Content-Disposition": f"attachment;filename=results.zip"}
-        )
+        # io_ = io.BytesIO()
+        os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
+        return FileResponse(f'DTM20F107Kp_{data}.datx')
+        # files = os.listdir()
+        # files_to_zip =['input']
+        # for file in files:
+        #     if file.endswith('.datx'):
+        #         files_to_zip.append(file)
+        # with zipfile.ZipFile(io_, mode='w') as zip:
+        #     for file in files_to_zip:
+        #         zip.write(file)
+        #     zip.close()
+        # return StreamingResponse(
+        #     iter([io_.getvalue()]),
+        #     media_type="application/zip",
+        #     headers={"Content-Disposition": f"attachment;filename=results.zip"}
+        #     )
     except Exception as e:
         return f'Cannot find execution id: {execution_id}'
