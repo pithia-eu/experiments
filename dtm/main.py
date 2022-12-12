@@ -24,13 +24,13 @@ The Drag Temperature Model is the in-house developed semi-empirical model of the
 tags_metadata = [
     {
         "name": "execute",
-        "description": "<p>Initiate a model execution by specifying the following parameters:<br>"
+        "description": "Initiate a model execution by specifying the following parameters:<br>"
                        "fm: Mean F10.7 flux of last 81 day, ge=60, le=250<br>"
                        "fl: Daily F10.7 flux of previous day, ge=60, le=300<br>"
                        "atl: Altitude, ge=120, le=1500<br>"
                        "day: Day of the year, ge=1, le=366<br>"
                        "akp1: Geomagnetic activity index kp delayed by 3 hours, ge=0, le=9<br>"
-                       "akp3: Mean geomagnetic activity index kp of the last 24 hours, ge=0, le=9<br></p>",
+                       "akp3: Mean geomagnetic activity index kp of the last 24 hours, ge=0, le=9<br>",
     },
     {
         "name": "plot",
