@@ -134,7 +134,6 @@ async def plot_results(execution_id: int,
         os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
         latidute = []
         counter = 0
-        # for i in range(-87,87):
         for i in reversed(range(-87, 88)):
             if counter == 3:
                 latidute.append(i)
@@ -142,10 +141,11 @@ async def plot_results(execution_id: int,
             elif counter == 0:
                 latidute.append(i)
             counter += 1
-        # latidute.append(87)
 
         df = pandas.read_csv(f'DTM20F107Kp_{data}.datx', sep='     ', header=None, engine='python')
         lat_array = numpy.array(latidute)
+
+        df = df.iloc[::-1]
         df = df.set_index(keys=lat_array)
 
         fig = plt.figure(figsize=[8, 8])
