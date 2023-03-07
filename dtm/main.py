@@ -154,7 +154,10 @@ async def plot_results(execution_id: int,
         plt.xlabel('solar local time')
         plt.title(f'DTM20F107Kp_{data}.data')
         fig.savefig(f'DTM20F107Kp_{data}.png')
-        return FileResponse(f'DTM20F107Kp_{data}.png')
+        # return FileResponse(f'DTM20F107Kp_{data}.png', media_type="image/png")
+        response = FileResponse(f'DTM20F107Kp_{data}.png', media_type="image/png")
+        response.headers["Content-Disposition"] = f"attachment; filename=DTM20F107Kp_{execution_id}_{data}.png"
+        return response
 
     except Exception as e:
         return e.__str__
@@ -171,9 +174,9 @@ async def download_results(execution_id: int,
     try:
         # io_ = io.BytesIO()
         os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
-        responce = FileResponse(f'DTM20F107Kp_{data}.datx')
-        responce.headers["Content-Disposition"] = f"attachment; filename=DTM20F107Kp_{data}.datx"
-        return responce
+        response = FileResponse(f'DTM20F107Kp_{data}.datx', media_type="text/csv")
+        response.headers["Content-Disposition"] = f"attachment; filename=DTM20F107Kp_{execution_id}_{data}.datx"
+        return response
         # files = os.listdir()
         # files_to_zip =['input']
         # for file in files:
