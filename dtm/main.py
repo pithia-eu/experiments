@@ -171,7 +171,9 @@ async def download_results(execution_id: int,
     try:
         # io_ = io.BytesIO()
         os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
-        return FileResponse(f'DTM20F107Kp_{data}.datx')
+        responce = FileResponse(f'DTM20F107Kp_{data}.datx')
+        responce.headers["Content-Disposition"] = f"attachment; filename=DTM20F107Kp_{data}.datx"
+        return responce
         # files = os.listdir()
         # files_to_zip =['input']
         # for file in files:

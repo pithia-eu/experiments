@@ -5,3 +5,7 @@ y latidute -87 to 87 by 3 degrees
            -78
            (59 lines)
 z = 
+
+/etc/nginx/nginx.conf
+proxy_hide_header 'access-control-allow-origin';
+  add_header Access-Control-Allow-Origin "*";
