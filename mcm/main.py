@@ -40,10 +40,6 @@ tags_metadata = [
                        "The plot can be downloaded, and presents data from 0-24 per 1hr, for latitude in range, +87 to -87, per 3 degrees.",
     },
     {
-        "name": "files",
-        "description": "Download an output file by passing an execution id."
-    },
-    {
         "name": "results",
         "description": "Download all results (e.g. plots and figures) by passing an execution id.<br>"
                        "Rename the file and add .zip as an extension.",
@@ -191,15 +187,6 @@ async def plot_results(execution_id: int,
     except Exception as e:
         return e.__str__
 
-
-@app.get("/files", tags=["files"],
-         responses={
-             200: {
-                 "content": {"media/csv": {}},
-                 "description": "Return the file as a media/csv.",
-             }
-         },
-         response_class=FileResponse)
 async def download_results_files(execution_id: int,
                                  data: str = Query(enum=['He',
                                                          'N2',
