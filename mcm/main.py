@@ -13,7 +13,7 @@ from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 description = """
-The Drag Temperature Model is the in-house developed semi-empirical model of the thermosphere. Its main application is in orbit determination and prediction. It provides point-wise predictions of total mass density, temperature, and partial densities of the main constituents (O2, N2, O, He). The solar driver is F10.7 and the geomagnetic driver of the model is Kp. The backbone of the data used to fit the model coefficients are the high-resolution and precision accelerometer-inferred densities of the GOCE, CHAMP and GRACE missions. The DTM2020 model is available on Github (F90 code).
+description required 
 
 ## Functionalities:
 * Execute the model.
@@ -28,6 +28,8 @@ tags_metadata = [
                        "fm: Mean F10.7 flux of last 81 day, ge=60, le=250<br>"
                        "fl: Daily F10.7 flux of previous day, ge=60, le=300<br>"
                        "atl: Altitude, ge=120, le=1500<br>"
+                       "lat: Latitude, ge=?, le=?<br>"
+                       "long: Longitude, ge=?, le=?<br>"
                        "day: Day of the year, ge=1, le=366<br>"
                        "akp1: Geomagnetic activity index kp delayed by 3 hours, ge=0, le=9<br>"
                        "akp3: Mean geomagnetic activity index kp of the last 24 hours, ge=0, le=9<br>",
@@ -48,7 +50,7 @@ tags_metadata = [
     },
 ]
 
-app = FastAPI(title='DTM2020-operational: semi-empirical thermosphere model',
+app = FastAPI(title='MCM',
               description=description,
               version="1.0",
               openapi_tags=tags_metadata
@@ -71,6 +73,8 @@ class Model(BaseModel):
     fl: int = Field(default=100, title="Daily F10.7 flux of previous day", ge=60,
                     le=300)  # Daily F10.7 flux of previous day
     alt: int = Field(default=300, title="Altitude", ge=120, le=1500)  # Altitude
+    lat: int = Field(default=300, title="Altitude", ge=120, le=1500)  # Latitude
+    long: int = Field(default=300, title="Altitude", ge=120, le=1500)  # v
     day: int = Field(default=180, title="Day of the year", ge=1, le=366)  # Day of year
     akp1: int = Field(default=0, title="Geomagnetic activity index kp delayed by 3 hours", ge=0,
                       le=9)  # Geomagnetic activity index kp
@@ -85,17 +89,19 @@ model = Model()
 async def execute(fm: int = model.fm,
                   fl: int = model.fl,
                   alt: int = model.alt,
+                  lat: int = model.lat,
+                  long: int = model.long,
                   day: int = model.day,
                   akp1: int = model.akp1,
                   akp3: int = model.akp3):
     try:
-        Model(fm=fm, fl=fl, alt=alt, day=day, akp1=akp1, akp3=akp3)
+        Model(fm=fm, fl=fl, alt=alt, lat=lat, long=long, day=day, akp1=akp1, akp3=akp3)
     except Exception as e:
         r = e.__str__().replace('\n', ' ')
         r = r.replace('Model', 'parameter:')
         return r
 
-    os.chdir('/home/ubuntu/experiments/dtm/runs')
+    os.chdir('/home/ubuntu/experiments/mcm/runs')
     folder_created = False
     while not folder_created:
         id_ = randint(1000000000, 9999999999)
@@ -107,12 +113,12 @@ async def execute(fm: int = model.fm,
             print(e)
             print(f'folder {id_} exist')
 
-    files_to_copy = ['Model_DTM2020F107Kp_forAPI', 'DTM_2020_F107_Kp']
-    for file in files_to_copy:
-        shutil.copy(f'../{file}', f'{id_}/{file}')
+
+    shutil.copy(f'../modMCM_All_PITHIA.exe', f'{id_}/modMCM_All_PITHIA.exe')
+    shutil.copytree(f'../data', f'{id_}/data')
 
     os.chdir(f'{id_}')
-    input_file_string = f'{fm},{fl},{alt},{day},{akp1},{akp3}'
+    input_file_string = f'{fm},{fl},{alt},{lat},{long},{day},{akp1},{akp3}'
     f = open("input", "a")
     f.write(input_file_string)
     f.close()
@@ -121,10 +127,10 @@ async def execute(fm: int = model.fm,
     f.write(input_file_string)
     f.close()
 
-    command_string = f'./Model_DTM2020F107Kp_forAPI < input'
+    command_string = f'./modMCM_All_PITHIA.exe < input'
     print(command_string)
     print(f'input: {input_file_string}')
-    os.system('./Model_DTM2020F107Kp_forAPI < input')
+    os.system('./modMCM_All_PITHIA.exe < input')
 
     results = []
     files = os.listdir()
@@ -133,7 +139,7 @@ async def execute(fm: int = model.fm,
             results.append(file)
 
     return {'execution_id': id_}, \
-        {'parameters': {'fm': fm, 'fl': fl, 'alt': alt, 'day': day, 'akp1': akp1, 'akp3': akp3}}, \
+        {'parameters': {'fm': fm, 'fl': fl, 'alt': alt, 'lat': lat, 'long': long, 'day': day, 'akp1': akp1, 'akp3': akp3}}, \
         {'result_files': results}
 
 
@@ -153,7 +159,7 @@ async def plot_results(execution_id: int,
                                                'Tinf',
                                                'Tz'])):
     try:
-        os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
+        os.chdir(f'/home/ubuntu/experiments/mcm/runs/{execution_id}')
         latidute = []
         counter = 0
         for i in reversed(range(-87, 88)):
@@ -202,7 +208,7 @@ async def download_results_files(execution_id: int,
                                                          'Tinf',
                                                          'Tz'])):
     try:
-        os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
+        os.chdir(f'/home/ubuntu/experiments/mcm/runs/{execution_id}')
         response = FileResponse(f'DTM20F107Kp_{data}.datx', media_type="text/csv")
         response.headers["Content-Disposition"] = f"attachment; filename=DTM20F107Kp_{execution_id}_{data}.csv"
         print(response.headers)
@@ -221,8 +227,8 @@ async def download_results_files(execution_id: int,
          response_class=FileResponse)
 async def download_all_results(execution_id: int):
     try:
-        os.chdir(f'/home/ubuntu/experiments/dtm/runs/{execution_id}')
-        zip_temp_path = f'/home/ubuntu/experiments/dtm/runs/{execution_id}/DTM20F107Kp_{execution_id}.zip'
+        os.chdir(f'/home/ubuntu/experiments/mcm/runs/{execution_id}')
+        zip_temp_path = f'/home/ubuntu/experiments/mcm/runs/{execution_id}/DTM20F107Kp_{execution_id}.zip'
         if os.path.exists(zip_temp_path):
             zip_file_path = zip_temp_path
         else:
