@@ -66,15 +66,15 @@ app.add_middleware(
 
 
 class Model(BaseModel):
-    fm: int = Field(default=180, title="Mean F10.7 flux of last 81 day", ge=60,
+    fm: float = Field(default=180, title="Mean F10.7 flux of last 81 day", ge=60,
                     le=250)  # Mean F10.7 flux of last 81 day
-    fl: int = Field(default=100, title="Daily F10.7 flux of previous day", ge=60,
+    fl: float = Field(default=100, title="Daily F10.7 flux of previous day", ge=60,
                     le=300)  # Daily F10.7 flux of previous day
     alt: int = Field(default=300, title="Altitude", ge=120, le=1500)  # Altitude
     day: int = Field(default=180, title="Day of the year", ge=1, le=366)  # Day of year
-    akp1: int = Field(default=0, title="Geomagnetic activity index kp delayed by 3 hours", ge=0,
+    akp1: float = Field(default=0, title="Geomagnetic activity index kp delayed by 3 hours", ge=0,
                       le=9)  # Geomagnetic activity index kp
-    akp3: int = Field(default=0, title="Mean geomagnetic activity index kp of the last 24 hours", ge=0,
+    akp3: float = Field(default=0, title="Mean geomagnetic activity index kp of the last 24 hours", ge=0,
                       le=9)  # Geomagnetic activity index kp
 
 
@@ -82,12 +82,12 @@ model = Model()
 
 
 @app.get("/execute", tags=["execute"])
-async def execute(fm: int = model.fm,
-                  fl: int = model.fl,
+async def execute(fm: float = model.fm,
+                  fl: float = model.fl,
                   alt: int = model.alt,
                   day: int = model.day,
-                  akp1: int = model.akp1,
-                  akp3: int = model.akp3):
+                  akp1: float = model.akp1,
+                  akp3: float = model.akp3):
     try:
         Model(fm=fm, fl=fl, alt=alt, day=day, akp1=akp1, akp3=akp3)
     except Exception as e:
